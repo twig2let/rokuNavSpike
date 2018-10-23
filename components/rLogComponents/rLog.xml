@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component
+	name="rLog"
+	extends="ContentNode"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="https://devtools.web.roku.com/schema/RokuSceneGraph.xsd"
+>
+  <interface>
+    <field id="logLevel" type="integer" value="4"/>
+    <field id="filters" type="array"/>
+    <field id="excludeFilters" type="array"/>
+    
+    <!-- list of transportTypes. supported values are printTransport -->
+    <field id="transports" type="array" onChange="onTransportsChange"/>
+    <!-- logs the passed in item to all registered transports -->
+    <function name="log"/>
+  </interface>
+  
+	<script type="text/brightscript" uri="rLog.brs" />
+	<script type="text/brightscript" uri="pkg:/source/rLog/rLogUtil.brs" />
+	<script type="text/brightscript" uri="pkg:/source/rLog/transports/printTransport.brs" />
+
+
+	<children>
+
+	</children>
+
+</component>

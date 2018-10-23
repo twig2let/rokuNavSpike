@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="MenuItem" extends="Group" xsi:noNamespaceSchemaLocation="https://devtools.web.roku.com/schema/RokuSceneGraph.xsd">
+
+    <interface>
+        <field id="item" type="node" onChange="onItemChange" alwaysNotify="true"/>
+    </interface>
+
+    <script type="text/brightscript" uri="MenuItem.brs" />
+
+    <children>
+        <Label id="nameLabel" horizAlign="center"/>
+    </children>
+</component>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="GridView" extends="BaseScreen" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://devtools.web.roku.com/schema/RokuSceneGraph.xsd">
+	<interface>
+	</interface>
+	<script type="text/brightscript" uri="GridView.brs" />
+
+	<children>
+		<NavItem id="navItem" name="GRID" />
+
+		<Label text="Grid view" />
+
+	</children>
+
+</component>

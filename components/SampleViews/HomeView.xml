@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component
+	name="HomeView"
+	extends="BaseScreen"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="https://devtools.web.roku.com/schema/RokuSceneGraph.xsd"
+>
+	<interface>
+	</interface>
+	<script type="text/brightscript" uri="HomeView.brs" />
+	
+	<children>
+			<NavItem id="navItem" name="HOME" />
+		<LayoutGroup>
+			<Label text="Home view" />
+		</LayoutGroup>
+		
+	</children>
+
+</component>

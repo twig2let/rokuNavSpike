@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="BaseView" extends="Group" xsi:noNamespaceSchemaLocation="https://devtools.web.roku.com/schema/RokuSceneGraph.xsd">
+
+    <interface>
+        <!-- Base of all views -->
+
+        <!-- lifecycle methods -->
+        <function name="initialize"/>
+        <function name="onShow"/>
+        <function name="onHide"/>
+        <function name="onDestroy"/>
+    </interface>
+
+    <script type="text/brightscript" uri="BaseView.brs" />
+    <script type="text/brightscript" uri="FocusMixin.brs" />
+
+    <script type="text/brightscript" uri="pkg:/source/rLog/rLogMixin.brs" />
+</component>

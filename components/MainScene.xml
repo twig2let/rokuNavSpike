@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="MainScene" extends="Scene" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://devtools.web.roku.com/schema/RokuSceneGraph.xsd">
+    <interface>
+        <!--  pointer to rLog, so we can change the 
+    the actual rLog lives on the global object-->
+        <field id="rLog" type="node" />
+        <field id="mainView" type="node" />
+    </interface>
+    <script type="text/brightscript" uri="MainScene.brs" />
+    <script type="text/brightscript" uri="pkg:/source/rLog/rLogMixin.brs" />
+    <children>
+
+    </children>
+</component>

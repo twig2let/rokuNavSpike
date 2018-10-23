@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="TabController" extends="BaseAggregateView" xsi:noNamespaceSchemaLocation="https://devtools.web.roku.com/schema/RokuSceneGraph.xsd">
+
+    <interface>
+        <!-- nav item of the currently displayed view -->
+        <field id="currentItem" type="node" onChange="OnCurrentItemChange"/>
+        <field id="navItemsByKey_" type="assocarray"/>
+        <field id="navItems" type="array"/>
+        
+        <!-- adds the passed in navItem to the view -->
+        <function name="addItem"/>
+    </interface>
+
+    <!-- Utils -->
+    <script type="text/brightscript" uri="TabController.brs" />
+</component>

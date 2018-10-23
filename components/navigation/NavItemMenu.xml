@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="NavItemMenu" extends="BaseView" 
+
+    xsi:noNamespaceSchemaLocation="https://devtools.web.roku.com/schema/RokuSceneGraph.xsd"
+>
+
+    <interface>
+        <!-- nav item of the currently displayed view -->
+        <field id="currentItem" type="node" onChange="OnCurrentItemChange"/>
+        <field id="items" type="array" onChange="OnItemsChange"/>
+        <field id="supportOptionPressWhenFocused" type="boolean" value="false" />
+
+    </interface>
+
+    <!-- Utils -->
+    <script type="text/brightscript" uri="NavItemMenu.brs" />
+    <script type="text/brightscript" uri="pkg:/source/rLog/rLogMixin.brs" />
+    <children>
+        <LayoutGroup id="container" 
+            layoutDirection="horizontal" 
+            horizAlignment="right"
+            vertAlignment="center"
+            itemSpacings="[30]"
+        />
+    </children>
+</component>

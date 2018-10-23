@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="MainView" extends="BaseView" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://devtools.web.roku.com/schema/RokuSceneGraph.xsd"
+	>
+	<interface>
+		<field id="isFocusedOnContent" type="boolean" value="false" onChange="onIsFocusedOnContentChange" />
+	</interface>
+
+	<script type="text/brightscript" uri="MainView.brs"  />
+
+	<children>
+		<!-- Main Menu -->
+		<LayoutGroup id="topNav" 
+			layoutDirection="horizontal" 
+			horizAlignment="right"
+			translation="[1080,50]"
+			>
+			<NavItemMenu id="tabMenu" />
+		</LayoutGroup>
+
+		<TabController id="tabController">
+			<HomeView id="homeView" />
+			<GridView id="gridView" />
+			<OptionsView id="optionsView" />
+		</TabController>
+	</children>
+
+</component>

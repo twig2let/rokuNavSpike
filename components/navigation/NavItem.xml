@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="NavItem" extends="Group" xsi:noNamespaceSchemaLocation="https://devtools.web.roku.com/schema/RokuSceneGraph.xsd">
+
+    <interface>
+        <!-- Abstraction for navigaiton items. This can be used to describe items in a tab
+        navigation, or built upon for dynamic view support -->
+        <field id="name" type="string"/>
+        <field id="iconUri" type="string"/>
+        <field id="isFocused" type="boolean"/>
+
+        <!-- if true, then this item is the special options menu item, toggled by the * key -->
+        <field id="isOptionsItem" type="boolean"/>
+
+        <!-- used for view tracking, to allow for name changes -->
+        <field id="key" type="string"/>
+        
+        <!-- view associated with the item -->
+        <field id="view" type="node"/>
+    </interface>
+
+    <script type="text/brightscript" uri="NavItem.brs" />
+</component>
