@@ -1,4 +1,3 @@
-Georgejecook [6:44 PM]
 anyone interested.. I’ve just made available some code I had on bitbucket for a while, which is a base implementation I use for navigation in roku apps.
 
 It’s not documented like my  other projects; but it does demonstrate:
