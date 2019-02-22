@@ -1,18 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<component name="BaseView" extends="Group" xsi:noNamespaceSchemaLocation="https://devtools.web.roku.com/schema/RokuSceneGraph.xsd">
+<component name="BaseView" extends="Group" >
+  <script type="text/brightscript" uri="BaseView.brs" />
+  <script type="text/brightscript" uri="pkg:/source/rLog/rLogMixin.brs" />
+  <script type="text/brightscript" uri="pkg:/components/lib/FocusMixin.brs" />
+  <script type="text/brightscript" uri="pkg:/components/lib/KeyMixin.brs" />
 
-    <interface>
-        <!-- Base of all views -->
+  <interface>
+    <!-- base of all views -->
+    
+    <field id="name"  type="string" value=""/>
+    <field id="isShown"  type="boolean" value="false"/>
+    
+    <!-- this indicates that our framework initialization,
+    which is distinct from init, has completed -->
+    <field id="isInitialized"  type="boolean" value="false"/>
+        
+    <!-- lifecycle methods -->
+    <!-- Views should be initialized by the framework. This is what tells the view
+    to get itself ready. A view can use the args of this to do things like initial data setup
+    etc, distinct from init, which is handy for runtime non-xml view creation -->
+    <function name = "initialize" />
+    <function name = "onShow" />
+    <function name = "onHide" />
+  </interface>
 
-        <!-- lifecycle methods -->
-        <function name="initialize"/>
-        <function name="onShow"/>
-        <function name="onHide"/>
-        <function name="onDestroy"/>
-    </interface>
-
-    <script type="text/brightscript" uri="BaseView.brs" />
-    <script type="text/brightscript" uri="FocusMixin.brs" />
-
-    <script type="text/brightscript" uri="pkg:/source/rLog/rLogMixin.brs" />
 </component>

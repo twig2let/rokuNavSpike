@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<component name="BaseAggregateView" extends="BaseView" xsi:noNamespaceSchemaLocation="https://devtools.web.roku.com/schema/RokuSceneGraph.xsd">
-
-    <interface>
-    </interface>
-
-    <!-- Utils -->
-    <script type="text/brightscript" uri="BaseAggregateView.brs" />
+<component name="BaseAggregateView" extends="BaseScreen">
+  <script type="text/brightscript" uri="BaseAggregateView.brs" />
+  
+  <interface>
+    <field id="currentView" type="node" />
+  </interface>
 </component>

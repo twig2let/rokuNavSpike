@@ -10,3 +10,4 @@ function Init() as void
   m.top.appendChild(m.top.mainView)
   m.top.mainView.setFocus(true)
 end function
+

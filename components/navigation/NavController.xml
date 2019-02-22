@@ -1,12 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<component name="NavController" extends="BaseAggregateView" xsi:noNamespaceSchemaLocation="https://devtools.web.roku.com/schema/RokuSceneGraph.xsd">
+<component name="NavController" extends="BaseAggregateView">
+  <script type="text/brightscript" uri="NavController.brs" />
 
-    <interface>
-        <function name="Push" />
-        <function name="Pop" />
-        <function name="Reset" />
-    </interface>
+  <interface>
+    <field id="numberOfViews" type="integer" alwaysNotify="true"/>
+    
+    <!-- events  -->
+      <field id="isLastViewPopped" type="bool" alwaysNotify="true"/>
 
-    <!-- Utils -->
-    <script type="text/brightscript" uri="NavController.brs" />
+      <!-- if true, then push/pop/reset will automatically focus the top view -->
+      <field id="isAutoFocusEnabled" type="bool" value="false"/>
+      
+    <!-- public functions -->  
+      <function name="push" />
+      <function name="pop" />
+      <function name="reset" />
+      <function name="resetToIndex" />
+  </interface>
+
 </component>

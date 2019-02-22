@@ -994,7 +994,12 @@ Sub setNodeField(node, field, value, fieldType) as Object
         end if
     else
         fields[field] = RALE_convertToType(value, fieldType)
-        if node.hasField(field) and node.getFieldType(field) <> fieldType then
+
+        'bug - this results in type mismatches "roBoolean"/"bool" vs "boolean" for fieldType
+        'here's a crude workaround
+        isBool = box(node.getFieldType(field)) = "boolean"
+
+        if node.hasField(field) and (isBool and fieldType <> "roBoolean" or (not isBool and node.getFieldType(field) <> fieldType)) then
             node.removeField(field)
         end if
 

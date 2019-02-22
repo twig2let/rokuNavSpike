@@ -9,11 +9,8 @@
         <field id="isFocused" type="boolean"/>
 
         <!-- if true, then this item is the special options menu item, toggled by the * key -->
-        <field id="isOptionsItem" type="boolean"/>
+        <field id="isOptionsItem" type="boolean" onChange="testThis"/>
 
-        <!-- used for view tracking, to allow for name changes -->
-        <field id="key" type="string"/>
-        
         <!-- view associated with the item -->
         <field id="view" type="node"/>
     </interface>

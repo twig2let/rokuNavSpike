@@ -1,2 +1,2 @@
-function init()  
+function testThis()
 end function

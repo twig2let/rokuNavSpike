@@ -1,9 +1,14 @@
-function Init()
-  FocusMixinInit()
-  m.top.observeField("visible", "onVisibleChange_")
+function init() as void
+  focusMixinInit()
+  keyPressMixinInit()
+  m.top.observeField("visible", "_onVisibleChange")
   m.wasShown = false
   m.isKeyPressLocked = false
 end function
+
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+'++ utils
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 function findNodes(nodeIds) as void
   if (type(nodeIds) = "roArray")
@@ -13,140 +18,101 @@ function findNodes(nodeIds) as void
         m[nodeId] = node
       else
         logWarn("could not find node with id {0}", nodeId)
-      endif
-    end for  
-  end if  
+      end if
+    end for
+  end if
 end function
 
+function getContentItemAtRowIndex(content, index)
+  if index.Count() = 2 then
+    logInfo("getContentItemAtRowIndex [" + stri(index[0]) + "," + stri(index[1]) + "]")
+    'get content node by index from grid
+    row = content.getChild(index[0])
+    if row <> invalid then
+      item = row.getChild(index[1])
+      if item <> invalid then
+        return item
+      end if
+    end if
+  end if
+  return invalid
+end function
+
+function getRowAtIndex(content, index)
+  if content <> invalid and index.Count() = 2 then
+    logInfo("getRowAtIndex [" + stri(index[0]) + "," + stri(index[1]) + "]")
+    return content.getChild(index[0])
+  end if
+  return invalid
+end function
+
+function getIndexOfItem(parent, item)
+  if item <> invalid
+    for index = 0 to parent.getChildCount() -1
+      node = parent.getChild(index)
+      if node.id = item.id
+        return index
+      end if
+    end for
+  end if
+  return -1
+end function
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 '** VISIBILITY
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-function onVisibleChange_()
-  'TODO - does the nav controller handle this in future?
-  print m.top.id ; "onVisibleChange_ visible " ; m.top.visible 
+function _onVisibleChange()
   if m.top.visible
-    onShow_()
+    onShow(invalid)
   else
-    onHide_()
+    onHide(invalid)
   end if
 end function
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-'++ Lifecycle methods
+'++ lifecycle methods
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-function initialize(args = invalid)
-end function
-
-function setNavItem(navItem)
-  navItem.view = m.top
-  navItem.key = navItem.name
-  m.top.navItem = navItem
-end function
 
 function onShow(args)
+  oldIsShowing = m.top.isShown
+  m.top.isShown = true
+
   if not m.wasShown
-    onFirstShow_()
+    onFirstShow()
     m.wasShown = true
   end if
-  onShow_()
+
+  if oldIsShowing <> m.top.isShown
+    _onShow()
+  end if
 end function
 
 function onHide(args)
-  onHide_()
+  m.top.isShown = false
+  _onHide()
 end function
 
+function initialize(args)
+  m.top.isInitialized = true
+  _initialize(args)
+  if m.top.visible and not m.top.isShown
+    onShow(invalid)
+  end if
+end function
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 '++ abstract lifecycle methods
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-function onFirstShow_()
+function _initialize(args)
 end function
 
-function onShow_()
+function onFirstShow()
 end function
 
-function onHide_()
+function _onShow()
 end function
 
-'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-'++ KEY HANDLING
-'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-function OnKeyEvent(key as String, press as Boolean) as Boolean
-    result = false
-    if press
-        if (isAnyKeyPressLocked_())
-            return true
-        end if
-        ' ? Substitute("[{0}.OnKeyEvent] {1}", m.top.id, key)
-        if key = "down"
-            result = onKeyPressDown_()    
-        else if key = "up"
-            result = onKeyPressUp_()
-        else if key = "left"
-            result = onKeyPressLeft_()
-        else if key = "right"
-            result = onKeyPressRight_()
-        else if key = "OK"
-            result = onKeyPressOK_()
-        else if key = "back"
-            result = onKeyPressBack_()
-        else if key = "options"
-            result = onKeyPressOption_()
-        end if
-    end if
-     
-    if (result = invalid)
-        result = false
-    end if
-
-    if (result = false)
-        result = isCapturingAnyKeyPress_(key)
-    end if
-    
-    return result 
-end function
-
-function isAnyKeyPressLocked_() as boolean
-  if m.isKeyPressLocked
-    print "all key presses are set to locked on View " ; m.top.subType() ; " with id " ; m.top.id
-  end if
-  return m.isKeyPressLocked
-end function  
-
-
-function isCapturingAnyKeyPress_(key) as boolean
-    return false
-end function
-
-function onKeyPressDown_() as boolean
-    return false
-end function
-
-function onKeyPressUp_() as boolean
-    return false
-end function
-
-function onKeyPressLeft_() as boolean
-    return false
-end function
-
-function onKeyPressRight_() as boolean
-    return false
-end function
-
-function onKeyPressBack_() as boolean
-    return false
-end function
-
-function onKeyPressOption_() as boolean
-    return false
-end function
-
-function onKeyPressOK_() as boolean
-    return false
+function _onHide()
 end function

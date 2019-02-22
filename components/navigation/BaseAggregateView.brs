@@ -1,34 +1,35 @@
-function init()  
-  m.top.currentView = invalid
-end function
-
-function onGainedFocus_()
-  if m.top.currentView <> invalid
-    setFocus(m.top.currentView)
-  end if
+function init() as void
+  m.currentView = invalid
 end function
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-'++ View management
+'++ view management
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-function showView_(view)
+function _showView(view)
+  logMethod("_showView")
   children = m.top.getChildren(-1, 0)
 
   for each child in children
     if not child.isSameNode(view)
-      hideView_(child)
+      _hideView(child)
     end if
   end for
 
   if view <> invalid
-    view.CallFunc("onShow", {})
+    if m.top.isShown
+      view.callFunc("onShow", {})
+    end if
     m.top.AppendChild(view)
+    m.top.currentView = view
   end if
 end function
 
-function hideView_(view)
+function _hideView(view)
   if view <> invalid
+    if view.isSameNode(m.top.currentView)
+      m.top.currentView = invalid
+    end if
     view.CallFunc("onHide", {})
     m.top.RemoveChild(view)
   end if
@@ -39,18 +40,24 @@ end function
 '++ Lifecycle methods
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-function onShow(args = invalid)
+function _onShow()
+  logMethod("_onShow")
   if m.top.currentView <> invalid
     m.top.currentView.CallFunc("onShow", {})
   end if
 end function
 
-function onHide(args = invalid)
+function _onHide()
+  logMethod("_onHide")
   if m.top.currentView <> invalid
-    mm.top.currentView.CallFunc("onHide", {})
+    m.top.currentView.CallFunc("onHide", {})
   end if
 end function
 
-function onDestroy(args = invalid)
-  'TODO
+function _onGainedFocus()
+  logMethod("_onGainedFocus")
+  if m.top.currentView <> invalid and m.top.hasFocus()
+    setFocus(m.top.currentView)
+  end if
 end function
+

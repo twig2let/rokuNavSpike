@@ -1,21 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<component
-	name="BaseScreen"
-	extends="BaseView"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:noNamespaceSchemaLocation="https://devtools.web.roku.com/schema/RokuSceneGraph.xsd"
->
-	<interface>
-		<!-- Base of all views -->
-		<!-- node of type NavItem, associated with this view -->
-		<field id="navItem" type="node"/>
+<component name="BaseScreen"	extends="BaseView" >
+  <script type="text/brightscript" uri="BaseScreen.brs" />
 
-		<field id="navController" type="node"/>
-	</interface>
+  <interface>
+    <!-- Base view for all screens.
+      provides common functions, which all screens require
+     -->
+    <!-- public fields/functions -->
+    
+    <!-- the context for the screen, if required.
+    This may differ from the modelLocator's selectedContentItem -->
+    <field id="content" type="node"/>
 
-	<script type="text/brightscript" uri="BaseScreen.brs" />
+    <!-- selection object, associated with this view -->
+    <field id="selection" type="node"/>
 
-	<children>
-	</children>
+    <field id="isLoading" type="boolean"/>
 
+    <!-- applies the user defined config -->
+    <function name="applyStyle" />
+
+    <!-- return the screen displayed on top of this screen's stack -->
+    <function name="getTopScreen" />
+
+    <!-- navController support -->
+      <field id="navController" type="node" />
+
+      <function name="onAddedToNavController" />
+      <function name="onRemovedFromNavController" />
+    
+  </interface>
 </component>
