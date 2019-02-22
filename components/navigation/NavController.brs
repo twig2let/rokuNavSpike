@@ -17,8 +17,7 @@ function push(view) as void
   logInfo("pushing ", view.subType())
   prev = m.viewStack.Peek()
   m.viewStack.Push(view)
-  m.top.numberOfViews = m.viewStack.count()
-
+  updatePublicFields()
   view.navController = m.top
   _showView(view)
   view.callFunc("onAddedToNavController", m.top)
@@ -29,16 +28,22 @@ function push(view) as void
 end function
 
 function resetToIndex(index)
-  _reset(invalid, index + 1)
+  _reset(invalid, index)
 end function
 
 function reset(newFirstScreen = invalid)
   _reset(newFirstScreen)
 end function
 
-function _reset(newFirstScreen = invalid, indexOffset = 1)
+function _reset(newFirstScreen = invalid, endIndex = -1)
   logInfo(" reset ", m.top.numberOfViews)
-  for i = 0 to  m.viewStack.count() - indexOffset
+  if endIndex < -1
+    endIndex = -1
+  end if
+  logInfo("endIndex is", endIndex)
+  index = m.top.numberOfViews - 1
+  while index > endIndex
+    logInfo("resetting index ", index)
     view = m.viewStack.Pop()
     if view <> invalid
       _hideView(view)
@@ -47,19 +52,19 @@ function _reset(newFirstScreen = invalid, indexOffset = 1)
     else
       logInfo(" reset found invalid child")
     end if
-  end for
+    index--
+  end while
 
-  'to be safe remove any other children
-  children = m.top.GetChildren(-1, 0)
-  m.top.removeChildren(children)
-
-  m.viewStack = []
-  m.top.numberOfViews  = 0
+  updatePublicFields()
 
   if newFirstScreen <> invalid
     logInfo("new first screen ",  newFirstScreen.subType())
     push(newFirstScreen)
+  else if m.top.numberOfViews > 0
+    logInfo("there were views left on the stack after resetting ")
+    _showView(m.viewStack[m.top.numberOfViews - 1])
   end if
+
 end function
 
 function pop(args) as object
@@ -67,7 +72,6 @@ function pop(args) as object
   previousView = m.top.currentView
   if (previousView <> invalid)
     m.viewStack.Pop()
-    'I've found in some situations, last can be invalid!
     _hideView(previousView)
     previousView.callFunc("onRemovedFromNavController", m.top)
     previousView.navController = invalid
@@ -81,8 +85,7 @@ function pop(args) as object
     end if
   end if
 
-  m.top.numberOfViews = m.viewStack.count()
-
+  updatePublicFields()
   if m.top.numberOfViews = 0
     m.top.isLastViewPopped = true
   end if
@@ -90,6 +93,14 @@ function pop(args) as object
 end function
 
 
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+'++ Private impl
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+function updatePublicFields()
+  m.top.numberOfViews = m.viewStack.count()
+  m.top.viewStack = m.viewStack
+end function
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 '++ Lifecycle methods
