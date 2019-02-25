@@ -58,6 +58,17 @@ function getIndexOfItem(parent, item)
   return -1
 end function
 
+' /**
+'  * @member intializeView
+'  * @memberof module:BaseView
+'  * @instance
+'  * @description initializes the passed in View
+'  * @param {BaseView} the view to initialize
+'  */
+function initializeView(view, args = invalid) as void
+  view.callFunc("initialize", args)
+end function
+
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 '** VISIBILITY
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -70,20 +81,26 @@ function _onVisibleChange()
   end if
 end function
 
-'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-'++ lifecycle methods
-'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+function applyStyle()
+  styles = m.modelLocator.styles
+  localizations = m.modelLocator.localizations
+  assets = m.modelLocator.assets
+  _applyStyle(styles, localizations, assets)
+end function
 
 function onShow(args)
+  ' ? ">> base VIEW ONSHOW " ; m.top.id ; " isShown " ; m.top.isShown
   oldIsShowing = m.top.isShown
   m.top.isShown = true
 
   if not m.wasShown
-    onFirstShow()
+    _onFirstShow()
     m.wasShown = true
   end if
 
   if oldIsShowing <> m.top.isShown
+    _baseScreenOnShow()
     _onShow()
   end if
 end function
@@ -93,11 +110,16 @@ function onHide(args)
   _onHide()
 end function
 
-function initialize(args)
-  m.top.isInitialized = true
-  _initialize(args)
-  if m.top.visible and not m.top.isShown
-    onShow(invalid)
+function initialize(args = invalid)
+  if not m.top.isInitialized
+    m.top.isInitialized = true
+    _initialize(args)
+    applyStyle()
+    if m.top.visible and not m.top.isShown
+      onShow(invalid)
+    end if
+  else
+    logWarn("View was already initializes ", m.top)
   end if
 end function
 
@@ -108,7 +130,18 @@ end function
 function _initialize(args)
 end function
 
-function onFirstShow()
+function _applyStyle(styles, localizations, assets)
+  'override me ; but this function should appear at the top of the script file, 
+  ' with the init method, for readability
+end function
+
+function _onFirstShow()
+end function
+
+'SG has a limit to how many times you can override a method
+'this function allows us to wire in extra show driven behavior in screens.
+'It's a hack; but it's better than having to duplicate behavior
+function _baseScreenOnShow()
 end function
 
 function _onShow()

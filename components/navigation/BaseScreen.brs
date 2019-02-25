@@ -1,13 +1,40 @@
 function Init()
   'get a reference to your model locator/central message bus/DIP here.
   ' m.modelLocator = m.global.modelLocator
+
+  'Track whatever constitutes a reload here, so any visible views can get reloaded
+  ' m.modelLocator.user.observeField("isLoggedIn", "onUserChange")
+end function
+
+function onUserChange()
+  if m.top.isShown
+    m.top.isUserChangePending = false
+    _onUserChange()
+  else
+    logInfo("user is change; but screen is not showing - marked as pending")
+    m.top.isUserChangePending = true
+  end if
+end function
+
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+'++ Overridden methods
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+function _baseScreenOnShow()
+  logMethod("_baseScreenOnShow")
+  if m.top.isUserChangePending
+    logInfo("a user change was pending, and the screen is now shown")
+    m.top.isUserChangePending = false
+    _onUserChange()
+  end if
 end function
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 '++ abstract methods
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-function applyStyle(args = invalid)
+
+function _onUserChange()
   'override me
 end function
 

@@ -17,9 +17,6 @@
 
     <field id="isLoading" type="boolean"/>
 
-    <!-- applies the user defined config -->
-    <function name="applyStyle" />
-
     <!-- return the screen displayed on top of this screen's stack -->
     <function name="getTopScreen" />
 
