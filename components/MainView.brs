@@ -39,6 +39,6 @@ function onKeyPressOption_() as boolean
   return true
 end function
 
-function _OnGainedFocus() as void
+function _onGainedFocus(isSelfFocused) as void
   onIsFocusedOnContentChange(invalid)
 end function

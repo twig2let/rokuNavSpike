@@ -21,7 +21,7 @@ function push(view) as void
   view.navController = m.top
   _showView(view)
   view.callFunc("onAddedToNavController", m.top)
-  if m.top.isAutoFocusEnabled
+  if m.top.isAutoFocusEnabled and m.top.isInFocusChain()
     setFocus(view)
   end if
   logInfo(view.subType(), " #views in stack", m.top.numberOfViews)

@@ -4,9 +4,15 @@
 
 function focusMixinInit()
   m.top.observeField("focusedChild", "onFocusedChildChange")
+  m.global.addFields({
+    "isFocusLocked":false
+    "focusLockReason":""
+  })
+
+  m.global.addField("focusedNode", "node", false)
   logVerbose(" focusMixinInit ", m.top.subType())
   m.currentFocusedControl = invalid
-  m.isFocused = false
+  m.isInFocusChain = false
 end function
 
 function saveFocus()
@@ -19,7 +25,6 @@ end function
 function clearSavedFocus()
   m.savedFocus = invalid
 end function
-
 '*************************************************************
 '** restoreFocus
 '** gives focus to the saved focus target; or if not possible, to the provided defaultFocusTarget
@@ -48,7 +53,6 @@ end function
 '** @param node as roSGNode - to set focus to
 '** @param isSaving as boolean - whether to save the focus so it later can be restored
 '** @param forceSet as boolean - this will override situations where the focus is locked, like when showing a dialog
-'** @return ObjectR retdesc
 '*************************************************************
 function setFocus(node, isSaving = true, forceSet = false)
   if (type(node) = "roSGNode")
@@ -59,11 +63,31 @@ function setFocus(node, isSaving = true, forceSet = false)
     else
       node.setFocus(false)
       node.setFocus(true)
+      m.global.focusedNode = node
       m.savedFocus = node
     end if
   else
     logError("setFocus called for invalid node!")
   end if
+end function
+
+'*************************************************************
+'** unsetFocus
+'** abstracts focus un setting to make it easier to debug
+'** @param node as roSGNode - to set focus to
+'*************************************************************
+function unsetFocus(node)
+  if (type(node) = "roSGNode")
+    logVerbose("unsetFocus ", node.subType(), " id ", node.id)
+    node.setFocus(false)
+
+    if node.isSameNode(m.savedFocus)
+      m.savedFocus = invalid
+    end if
+  else
+    logError("setFocus called for invalid node!")
+  end if
+  m.global.focusedNode = invalid
 end function
 
 '*************************************************************
@@ -74,17 +98,12 @@ end function
 '** @param focusLockReason as string helps identify what locked the focus for debugging purposes
 '*************************************************************
 function setFocusLocked(isLocked, focusLockReason ="")
-  if (not m.global.hasField("isFocusLocked"))
-    m.global.addFields({"isFocusLocked":isLocked})
-    m.global.addFields({"focusLockReason":focusLockReason})
+  if (isLocked)
+    m.global.setField("focusLockReason",focusLockReason)
   else
-    if (isLocked)
-      m.global.setField("focusLockReason",focusLockReason)
-    else
-      m.global.setField("focusLockReason","unlocked " + focusLockReason)
-    end if
-    m.global.setField("isFocusLocked",isLocked)
+    m.global.setField("focusLockReason","unlocked " + focusLockReason)
   end if
+  m.global.setField("isFocusLocked",isLocked)
 end function
 
 function onFocusedChildChange(evt)
@@ -92,20 +111,20 @@ function onFocusedChildChange(evt)
 
   if (newNode = invalid)
     logVerbose("onFocusedChildChange newNode is invalid")
-    updateIsFocused(false)
+    updateIsFocused(false, false, invalid)
   else
-    updateIsFocused(m.top.isInFocusChain())
+    updateIsFocused(m.top.isInFocusChain(), m.top.hasFocus(), newNode)
   end if
 end function
 
-function updateIsFocused(isFocused)
-  wasFocused = m.isFocused
-  m.isFocused = isFocused
+function updateIsFocused(isInFocusChain, isFocused, newNode)
+  wasInFocusChain = m.isInFocusChain
+  m.isInFocusChain = isInFocusChain
 
-  if (wasFocused and not m.isFocused) then
+  if (wasInFocusChain and not m.isInFocusChain)
     _onLostFocus()
-  else if (m.isFocused and not wasFocused) then
-    _onGainedFocus()
+  else if (m.isInFocusChain and not wasInFocusChain)
+    _onGainedFocus(isFocused)
   end if
 end function
 
@@ -114,7 +133,7 @@ end function
 '++ abstract focus methods
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-function _onGainedFocus()
+function _onGainedFocus(isSelfFocused)
 end function
 
 

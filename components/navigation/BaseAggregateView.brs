@@ -54,7 +54,7 @@ function _onHide()
   end if
 end function
 
-function _onGainedFocus()
+function _onGainedFocus(isSelfFocused)
   logMethod("_onGainedFocus")
   if m.top.currentView <> invalid and m.top.hasFocus()
     setFocus(m.top.currentView)
