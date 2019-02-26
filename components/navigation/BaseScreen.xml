@@ -16,6 +16,8 @@
     <field id="selection" type="node"/>
 
     <field id="isLoading" type="boolean"/>
+    
+    <field id="isUserChangePending" type="boolean"/>
 
     <!-- return the screen displayed on top of this screen's stack -->
     <function name="getTopScreen" />
