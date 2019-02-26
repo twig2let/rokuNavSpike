@@ -14,6 +14,10 @@ function push(view) as void
     logWarn(" push invalid view passed in : ignoring")
     return
   end if
+  if not view.isInitialized
+    initializeView(view)
+  end if
+
   logInfo("pushing ", view.subType())
   prev = m.viewStack.Peek()
   m.viewStack.Push(view)

@@ -1,7 +1,7 @@
 function init() as void
+  m.modelLocator = m.global.modelLocator
   focusMixinInit()
   keyPressMixinInit()
-  m.top.observeField("visible", "_onVisibleChange")
   m.wasShown = false
   m.isKeyPressLocked = false
 end function
@@ -74,6 +74,8 @@ end function
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 function _onVisibleChange()
+  'TODO - does the nav controller handle this in future?
+  logInfo(m.top.id, "_onVisibleChange visible ", m.top.visible)
   if m.top.visible
     onShow(invalid)
   else
@@ -81,6 +83,9 @@ function _onVisibleChange()
   end if
 end function
 
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+'++ Lifecycle methods
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 function applyStyle()
   styles = m.modelLocator.styles
@@ -89,11 +94,14 @@ function applyStyle()
   _applyStyle(styles, localizations, assets)
 end function
 
-function onShow(args)
+function onShow(args) as void
   ' ? ">> base VIEW ONSHOW " ; m.top.id ; " isShown " ; m.top.isShown
   oldIsShowing = m.top.isShown
+  if not m.top.isInitialized
+    return
+  end if
   m.top.isShown = true
-
+  
   if not m.wasShown
     _onFirstShow()
     m.wasShown = true
@@ -111,15 +119,17 @@ function onHide(args)
 end function
 
 function initialize(args = invalid)
+  logMethod("initialize")
   if not m.top.isInitialized
     m.top.isInitialized = true
     _initialize(args)
     applyStyle()
+    m.top.observeField("visible", "_onVisibleChange")
     if m.top.visible and not m.top.isShown
       onShow(invalid)
     end if
   else
-    logWarn("View was already initializes ", m.top)
+    logWarn("View was already initialized. Ignoring subsequent call ", m.top)
   end if
 end function
 
