@@ -22,9 +22,9 @@
 
     <!-- navController support -->
       <field id="navController" type="node" />
-
-      <function name="onAddedToNavController" />
-      <function name="onRemovedFromNavController" />
+      
+      <function name="onAddedToAggregateView" />
+      <function name="onRemovedFromAggregateView" />
     
   </interface>
 </component>

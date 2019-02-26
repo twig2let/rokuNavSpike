@@ -76,22 +76,22 @@ function resetNavController(newFirstScreen = invalid)
   end if
 end function
 
-function onAddedToNavController(navController)
-  logMethod("onAddedToNavController", m.top.id)
+function onAddedToAggregateView(navController)
+  logMethod("onAddedToAggregateView", m.top.id)
   toggleLoadingIndicator(true, "screen was in loading state when added to nav controller")
 
-  _onAddedToNavController(navController)
+  _onAddedToAggregateView(navController)
 end function
 
-function onRemovedFromNavController(navController)
-  logMethod("onRemovedFromNavController", m.top.id)
-  _onRemovedFromNavController(navController)
+function onRemovedFromAggregateView(navController)
+  logMethod("onRemovedFromAggregateView", m.top.id)
+  _onRemovedFromAggregateView(navController)
 end function
 
-function _onAddedToNavController(navController)
+function _onAddedToAggregateView(navController)
 end function
 
-function _onRemovedFromNavController(navController)
+function _onRemovedFromAggregateView(navController)
 end function
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

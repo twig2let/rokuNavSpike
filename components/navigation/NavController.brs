@@ -24,7 +24,7 @@ function push(view) as void
   updatePublicFields()
   view.navController = m.top
   _showView(view)
-  view.callFunc("onAddedToNavController", m.top)
+  view.callFunc("onAddedToAggregateView", m.top)
   if m.top.isAutoFocusEnabled and m.top.isInFocusChain()
     setFocus(view)
   end if
@@ -52,7 +52,7 @@ function _reset(newFirstScreen = invalid, endIndex = -1)
     if view <> invalid
       _hideView(view)
       view.navController = invalid
-      view.callFunc("onRemovedFromNavController", m.top)
+      view.callFunc("onRemovedFromAggregateView", m.top)
     else
       logInfo(" reset found invalid child")
     end if
@@ -77,7 +77,7 @@ function pop(args) as object
   if (previousView <> invalid)
     m.viewStack.Pop()
     _hideView(previousView)
-    previousView.callFunc("onRemovedFromNavController", m.top)
+    previousView.callFunc("onRemovedFromAggregateView", m.top)
     previousView.navController = invalid
 
     previousView = m.viewStack.Peek()
