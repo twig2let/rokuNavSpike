@@ -17,6 +17,11 @@ function changeCurrentItem(item)
     m.top.currentItem = item
     view = getViewForMenuItemContent(m.top.currentItem)
     if view <> invalid
+      'we want to clear out the view's vis, so the initialize
+      'won't trigger show callbacks prematurely
+      view.visible = false
+      view.isShown = false
+
       if not view.isInitialized
         initializeView(view)
       end if
@@ -56,6 +61,11 @@ function createView(menuItemContent)
     view = createObject("roSGNode", menuItemContent.screenType)
     view.menuItemContent = menuItemContent
     view.id = menuItemContent.id
+    'we want to clear out the view's vis, so the initialize
+    'won't trigger show callbacks prematurely
+    view.visible = false
+    view.isShown = false
+
     initializeView(view)
     view.visible = false
     m.viewsByMenuItemId[menuItemContent.id] = view

@@ -18,12 +18,14 @@ function _showView(view)
 
   if view <> invalid
     logMethod("view is valid. isShown", m.top.isShown, "view", view.id)
-  
+
+    m.top.AppendChild(view)
+    m.top.currentView = view
+
     if m.top.isShown
       view.visible = true
     end if
-    m.top.AppendChild(view)
-    m.top.currentView = view
+
   end if
 end function
 
@@ -61,7 +63,7 @@ function _onGainedFocus(isSelfFocused)
   if m.top.currentView <> invalid and isSelfFocused
     logDebug("setting focus to view ", m.top.currentView.id)
     setFocus(m.top.currentView)
-  else 
+  else
     logDebug("no current view when gaining focus")
   end if
 end function

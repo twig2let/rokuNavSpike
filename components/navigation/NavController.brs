@@ -14,6 +14,11 @@ function push(view) as void
     logWarn(" push invalid view passed in : ignoring")
     return
   end if
+  'we want to clear out the view's vis, so the initialize
+  'won't trigger show callbacks prematurely
+  view.visible = false
+  view.isShown = false
+
   if not view.isInitialized
     initializeView(view)
   end if

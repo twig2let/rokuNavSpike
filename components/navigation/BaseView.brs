@@ -114,8 +114,12 @@ function onShow(args) as void
 end function
 
 function onHide(args)
-  m.top.isShown = false
-  _onHide()
+  if m.wasShown
+    m.top.isShown = false
+    _onHide()
+  else
+    logWarn("onHide called before show: ignoring")
+  end if
 end function
 
 function initialize(args = invalid)
