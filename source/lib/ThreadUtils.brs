@@ -20,8 +20,13 @@
 '  * @param {delay} max ms to wait - if exceeded before message comes, invalid is returned
 '  * @param {roMessagePort} port to get message on
 '  * @returns {roMessage} message, once retrieved
+'  * @param {boolean} forceOriginalImpl - if true will use the standard implementation
 '  */
-function waitPort(delay = 0, port = invalid)
+function waitPort(delay = 0, port = invalid, forceOriginalImpl = false)
+  if forceOriginalImpl
+    ? "waitPort: forcing original implementation"
+    return wait(delay, port)
+  end if
   if port = invalid
     return invalid
   end if
@@ -46,11 +51,16 @@ end function
 '  * @memberof module:ThreadUtils
 '  * @instance
 '  * @description replacement for
-'  * @param {paramType} paramDescription
-'  * @returns {returnType} returnDescription
+'  * @param {delay} delay in ms
+'  * @param {boolean} forceOriginalImpl - if true will use the standard implementation
 '  */
-
-function waitForMilliseconds(delay)
+function waitForMilliseconds(delay, forceOriginalImpl = false) as void
+  if forceOriginalImpl
+    ? "waitForMilliseconds: forcing original implementation"
+    port = CreateObject("roMessagePort")
+    wait(delay, port)
+    return
+  end if
   timespan = CreateObject("roTimespan")
   while true
     if timespan.TotalMilliseconds() > delay then exit while

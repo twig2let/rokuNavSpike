@@ -10,7 +10,6 @@
 '  * out the original wait(0, port) functionality.
 '  */
 
-
 ' /**
 '  * @member waitPort
 '  * @memberof module:ThreadUtils
@@ -20,8 +19,9 @@
 '  * @param {delay} max ms to wait - if exceeded before message comes, invalid is returned
 '  * @param {roMessagePort} port to get message on
 '  * @returns {roMessage} message, once retrieved
+'  * @param {boolean} forceOriginalImpl - if true will use the standard implementation
 '  */
-function waitPort(delay = 0, port = invalid)
+function waitPort(delay = 0, port = invalid, forceOriginalImpl = false)
   return wait(delay, port)
 end function
 
@@ -30,10 +30,10 @@ end function
 '  * @memberof module:ThreadUtils
 '  * @instance
 '  * @description replacement for
-'  * @param {paramType} paramDescription
-'  * @returns {returnType} returnDescription
+'  * @param {delay} delay in ms
+'  * @param {boolean} forceOriginalImpl - if true will use the standard implementation
 '  */
-function waitForMilliseconds(delay)
+function waitForMilliseconds(delay, forceOriginalImpl = false) as void
   port = CreateObject("roMessagePort")
   wait(delay, port)
 end function
