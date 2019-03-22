@@ -24,7 +24,7 @@
 '  */
 function waitPort(delay = 0, port = invalid, forceOriginalImpl = false)
   if forceOriginalImpl
-    ? "waitPort: forcing original implementation"
+    '? "waitPort: forcing original implementation"
     return wait(delay, port)
   end if
   if port = invalid
@@ -56,7 +56,7 @@ end function
 '  */
 function waitForMilliseconds(delay, forceOriginalImpl = false) as void
   if forceOriginalImpl
-    ? "waitForMilliseconds: forcing original implementation"
+    '? "waitForMilliseconds: forcing original implementation"
     port = CreateObject("roMessagePort")
     wait(delay, port)
     return
