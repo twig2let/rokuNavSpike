@@ -12,7 +12,7 @@
 
 
 ' /**
-'  * @member getPortMessage
+'  * @member waitPort
 '  * @memberof module:ThreadUtils
 '  * @instance
 '  * @description port.wait is buggy and ruins breakpoint debugging, we therefore use this
@@ -21,7 +21,7 @@
 '  * @param {roMessagePort} port to get message on
 '  * @returns {roMessage} message, once retrieved
 '  */
-function getPortMessage(delay = 0, port = invalid)
+function waitPort(delay = 0, port = invalid)
   return wait(delay, port)
 end function
 
