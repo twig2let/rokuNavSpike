@@ -21,7 +21,7 @@ const args = {
   password: process.env.ROKU_PASSWORD || 'aaaa',
   rootDir: './',
   files: ['src/**/*'],
-  outDir: './out',
+  outDir: './build',
   retainStagingFolder: true
 };
 
@@ -41,18 +41,18 @@ function createDirectories() {
 /**
  * This target is used for CI
  */
-export function prepareFrameworkTests(cb) {
+export function prepareTests(cb) {
   rokuDeploy.prepublishToStaging(args);
-  let task = cp.exec('rooibosC -t out/.roku-deploy-staging/source/tests -r out/.roku-deploy-staging');
+  let task = cp.exec('rooibosC -t build/.roku-deploy-staging/source/tests -r build/.roku-deploy-staging');
   task.stdout.pipe(process.stdout)
   return task;
 }
 
-export async function deployFrameworkTests(cb) {
+export async function deployTests(cb) {
   await rokuDeploy.publish(args);
 }
 
-export async function zipFrameworkTests(cb) {
+export async function zipTests(cb) {
   await rokuDeploy.zipPackage(args);
 }
 
@@ -74,7 +74,7 @@ export function doc(cb) {
 }
 
 exports.build = series(clean, createDirectories);
-exports.runFrameworkTests = series(exports.build, prepareFrameworkTests, zipFrameworkTests, deployFrameworkTests)
-exports.prePublishFrameworkTests = series(exports.build, prepareFrameworkTests)
+exports.runTests = series(exports.build, prepareTests, zipTests, deployTests)
+exports.prePublishTests = series(exports.build, prepareTests)
 exports.prePublish = series(exports.build, prepare)
 exports.dist = series(exports.build, doc);

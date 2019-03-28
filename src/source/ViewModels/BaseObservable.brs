@@ -255,7 +255,7 @@ end function
 '  * @instance
 '  * @description creates a BaseObserver instance, which you can extend,
 '  */
-function BaseObserver() as object
+function BaseObservable() as object
   return {
     'vars
     isBindingNotificationEnabled: false
@@ -271,7 +271,7 @@ function BaseObserver() as object
     firePendingObserverNotifications: BO_firePendingObserverNotifications
     firePendingBindingNotifications: BO_firePendingBindingNotifications
     setField: BO_setField
-    observeField: BO_observeField
+    observeField: BO_observeFieldImpl
     unobserveField: BO_unobserveField
     unobserveAllFields: BO_unobserveAllFields
     notify: BO_notify
@@ -362,7 +362,7 @@ end function
 function BO_setField(fieldName, value) as boolean
   if not isString(fieldName)
     logError("Tried to setField with illegal field name")
-    return
+    return false
   end if
 
   if type(value) = "<uninitialized>"
@@ -386,7 +386,7 @@ end function
 '  * @param {boolean} setInitialValue - if true, will call the function on initial setting
 '  * @returns {boolean} true if successful
 '  */
-function BO_observeField(fieldName, functionName, setInitialValue = true) as boolean
+function BO_observeFieldImpl(fieldName, functionName, setInitialValue = true) as boolean
   'TODO - I think we will want a mixin method for this, that provides a prepackaged node, with a context callback we can invoke
   if not isString(fieldName)
     logError("Tried to observe field with illegal field name")
@@ -413,12 +413,12 @@ end function
 function BO_unobserveField(fieldName, functionName) as boolean
   if not isString(fieldName)
     logError("Tried to unobserve field with illegal field name")
-    return
+    return false
   end if
 
   if not isString(functionName)
     logError("Tried to unobserve field with illegal functionName")
-    return
+    return false
   end if
 
   observers = m.observers[fieldName]
