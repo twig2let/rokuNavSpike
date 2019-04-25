@@ -1,17 +1,12 @@
 import { series } from "gulp";
-const concat = require('gulp-concat');
+import { BurpConfig, BurpProcessor } from "burp-brightscript";
+import { RooibosProcessor } from "rooibos-preprocessor";
+
 const gulp = require('gulp');
 const path = require('path');
-const del = require('del');
-const header = require('gulp-header');
+const gulpClean = require('gulp-clean');
 const pkg = require('./package.json');
-const distDir = 'dist';
-const outDir = 'out';
-const distFile = `rooibosDist.brs`;
-const fullDistPath = path.join(distDir, distFile);
-const fs = require('fs');
-const rmLines = require('gulp-rm-lines');
-const gulpCopy = require('gulp-copy');
+const outDir = './build';
 const rokuDeploy = require('roku-deploy');
 const cp = require('child_process');
 
@@ -27,25 +22,24 @@ const args = {
 
 
 export function clean() {
-  const distPath = path.join(distDir, '**');
-  console.log('Doing a clean at ' + distPath);
-  return del([distPath, outDir], { force: true });
+  console.log('Doing a clean at ' + outDir);
+  return gulp.src(outDir, { allowEmpty:true }).pipe(gulpClean({ force: true }));
 }
 
-function createDirectories() {
+export function createDirectories() {
   return gulp.src('*.*', { read: false })
-    .pipe(gulp.dest(distDir))
     .pipe(gulp.dest(outDir));
 }
 
 /**
  * This target is used for CI
  */
-export function prepareTests(cb) {
-  rokuDeploy.prepublishToStaging(args);
-  let task = cp.exec('rooibosC -t build/.roku-deploy-staging/source/tests -r build/.roku-deploy-staging');
-  task.stdout.pipe(process.stdout)
-  return task;
+export async function prepareTests(cb) {
+  await rokuDeploy.prepublishToStaging(args);
+  let processor = new RooibosProcessor('build/.roku-deploy-staging/source/tests', 'build/.roku-deploy-staging', 'build/.roku-deploy-staging/source/tests');
+  processor.processFiles();
+
+  cb();
 }
 
 export async function deployTests(cb) {
@@ -64,6 +58,27 @@ export async function zip(cb) {
   await rokuDeploy.zipPackage(args);
 }
 
+export function addDevLogs(cb) {
+  let config: BurpConfig = {
+    "sourcePath": "build/.roku-deploy-staging",
+    // "sourcePath": "build/wtf",
+    "globPattern": "**/*.brs",
+    "replacements": [
+      {
+        "regex": "(^.*(logInfo|logError|logVerbose|logDebug)\\((\\s*\"))",
+        "replacement": "$1#FullPath# "
+      },
+      {
+        "regex": "(^.*(logMethod)\\((\\s*\"))",
+        "replacement": "$1#FullPath# "
+      }
+    ]
+  }
+  const processor = new BurpProcessor(config);
+  processor.processFiles();
+  cb();
+}
+
 export async function deploy(cb) {
   await rokuDeploy.publish(args);
 }
@@ -74,7 +89,7 @@ export function doc(cb) {
 }
 
 exports.build = series(clean, createDirectories);
-exports.runTests = series(exports.build, prepareTests, zipTests, deployTests)
-exports.prePublishTests = series(exports.build, prepareTests)
-exports.prePublish = series(exports.build, prepare)
+exports.prePublishTests = series(exports.build, prepareTests, addDevLogs)
+exports.runTests = series(exports.prePublishTests, zipTests, deployTests)
+exports.prePublish = series(exports.build, prepare, addDevLogs)
 exports.dist = series(exports.build, doc);
