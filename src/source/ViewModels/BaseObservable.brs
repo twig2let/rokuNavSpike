@@ -10,6 +10,16 @@
 '++ MIXIN METHODS
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+' /**
+'  * @member BO_ObserveField
+'  * @memberof module:BaseObservable
+'  * @instance
+'  * @description observes the field on observable, calling the passed in function when the value changes
+'  * @param {BaseObservable} observable instance of observable
+'  * @param {string} field field to observe on the passed in observable
+'  * @param {function} functionPointer method to invoke when the value changes
+'  * @returns {returnType} returnDescription
+'  */
 function BO_ObserveField(observable, field, functionPointer)
   if not BO_registerObservable(observable)
     return false
@@ -107,10 +117,11 @@ end function
 '  * @member registerObservable
 '  * @memberof module:BaseObservable
 '  * @instance
-'  * @description registers the observer with this node (i.e code benhind)
+'  * @description registers the observer with this node (i.e code behind for component/task)
 '  *              which wires up all the context info required to ensure
 '  *              scope preservation
 '  * @param {observable} instance of an observable
+'  * @returns {boolean} true if successfully registered
 '  */
 function BO_registerObservable(observable) as boolean
   if not isAACompatible(observable)
@@ -145,6 +156,14 @@ function BO_registerObservable(observable) as boolean
   return true
 end function
 
+' /**
+'  * @member BO_unregisterObservable
+'  * @memberof module:BaseObservable
+'  * @instance
+'  * @description unregisters the passed in observable
+'  * @param {BaseObservable} instance of an observable
+'  * @returns {boolean} true if successfully removed
+'  */
 function BO_unregisterObservable(observable) as boolean
   if not observable.doesContain("contextId")
     logError("passed in node did not contain a context Id")
@@ -165,12 +184,33 @@ end function
 '++ Two way binding convenience
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+' /**
+'  * @member BO_bindFieldTwoWay
+'  * @memberof module:BaseObservable
+'  * @instance
+'  * @description wires the field on the observable to the target field on the targetNode
+'  * @param {BaseObservable} observable - instance to bind
+'  * @param {string} fieldName - field on observable to bind
+'  * @param {roSGNode} targetNode - node to bind to
+'  * @param {string} targetField - field on target node to bind to
+'  * @param {boolean} setInitialValue, if true, then the binding is invoked with the current value
+'  */
 function BO_bindFieldTwoWay(observable, fieldName, targetNode, targetField, setInitialValue = true) as void
   registerObservable(observable)
   observable.bindField(fieldName, targetNode, targetField, setInitialValue)
   BO_bindNodeField(targetNode, fieldName, observable, targetField)
 end function
 
+' /**
+'  * @member BO_unbindFieldTwoWay
+'  * @memberof module:BaseObservable
+'  * @instance
+'  * @description unwires the field on the observable to the target field on the targetNode
+'  * @param {BaseObservable} observable - instance to bind
+'  * @param {string} fieldName - field on observable to bind
+'  * @param {roSGNode} targetNode - node to bind to
+'  * @param {string} targetField - field on target node to bind to
+'  */
 function BO_unbindFieldTwoWay(observable, fieldName, targetNode, targetField) as void
   registerObservable(observable)
   observable.unbindField(fieldName, targetNode, targetField)
@@ -287,10 +327,10 @@ end function
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 function BO_getNodeFieldBindingKey(node, field, targetField)
-  return this.contextId + "_" + node.id + "_" + field + "_" + targetField
+  return m.contextId + "_" + node.id + "_" + field + "_" + targetField
 end function
 
-function BO_checkValidInputs(fieldName, targetNode, targetField, setInitialValue = true) as boolean
+function BO_checkValidInputs(fieldName, targetNode, targetField) as boolean
   if not isString(fieldName) or fieldName.trim() = ""
     logError("Tried to bind with illegal fieldName")
     return false
@@ -360,7 +400,7 @@ end function
 '  * @returns {boolean} true if succesful
 '  */
 function BO_setField(fieldName, value) as boolean
-  if not isString(fieldName)
+  if not isString(fieldName) or fieldName.trim() = ""
     logError("Tried to setField with illegal field name")
     return false
   end if
@@ -533,7 +573,7 @@ end function
 '  * @member notifyBinding
 '  * @memberof module:BaseObservable
 '  * @instance
-'  * @description Will notify observers of fieldName, of it's valie
+'  * @description Will notify observers of fieldName, of it's value
 '  * @param {string} fieldName - field to update
 '  * @param {any} value - field to update
 '  * @param {string} specificKey - if present, will specify a particular binding key
