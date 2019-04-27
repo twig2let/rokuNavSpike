@@ -6,6 +6,20 @@ function BOT_BeforeEach()
 end function
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+'@It tests constructor
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+function BOT_constructor()
+  m.assertTrue(m.observable.__observableObject)
+  m.assertTrue(m.observable.isBindingNotificationEnabled)
+  m.assertFalse(m.observable.isContextValid)
+  m.assertEmpty(m.observable.observers)
+  m.assertEmpty(m.observable.bindings)
+  m.assertEmpty(m.observable.pendingObservers)
+  m.assertEmpty(m.observable.pendingBindings)
+end function
+
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 '@It tests setField
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

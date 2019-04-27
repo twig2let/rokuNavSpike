@@ -27,7 +27,7 @@ function BOM_ObserveField(observable, field, functionPointer)
 end function
 
 function BOM_unobserveField(fieldName, functionName) as boolean
- if not m.checkValidInputs(fieldName, targetNode, targetField)
+  if not m.checkValidInputs(fieldName, targetNode, targetField)
     return false
   end if
 end function
@@ -55,7 +55,7 @@ function BOM_bindNodeField(targetNode, fieldName, observable, targetField) as bo
   nodeBindings = m._observableNodeBindings[nodeKey]
 
   if nodeBindings = invalid
-    targetNode.observeFieldScoped(fieldName, "BOM_BindingCallback")
+    targetNode.observeFieldScoped(fieldName, BOM_BindingCallback)
     nodeBindings = {}
   end if
 
@@ -127,11 +127,18 @@ end function
 '  */
 function BOM_registerObservable(observable) as boolean
   if not isAACompatible(observable)
-    logError("invalid observable passed in")
+    logError("non aa object passed in")
     return false
   end if
 
-  if not observable.doesContain("contextId")
+  if not observable.doesExist("__observableObject")
+    logError("the passed in object is not an Observable subclass")
+    return false
+  end if
+
+  if observable.doesExist("contextId")
+    contextId = observable.contextId
+  else
     logInfo("this observable has never been registered - setting it's context id")
     if m._observableContextId = invalid
       m["_observableContextId"] = -1
@@ -146,13 +153,13 @@ function BOM_registerObservable(observable) as boolean
     m._observableNodeBindings = {}
     m._observableContext = createObject("roSGNode", "ContentNode")
     m._observableContext.addField("bindingMessage", "assocarray", true)
-    m._observableContext.observeFieldScoped("bindingMessage", "BOM_BindingCallback")
+    m._observableContext.observeFieldScoped("bindingMessage", BOM_ObserverCallback)
   end if
 
   registeredObservable = m._observables[contextId]
   if registeredObservable = invalid
-    logInfo("this observable was not registered - registering it now with context id ", observable.contextId)
-    m._observables[observable.contextId] = observable
+    logInfo("this observable was not registered - registering it now with context id ", contextId)
+    m._observables[contextId] = observable
     observable.setContext(contextId, m._observableContext)
   end if
   return true
@@ -167,7 +174,17 @@ end function
 '  * @returns {boolean} true if successfully removed
 '  */
 function BOM_unregisterObservable(observable) as boolean
-  if not observable.doesContain("contextId")
+  if not isAACompatible(observable)
+    logError("non aa object passed in")
+    return false
+  end if
+
+  if not observable.doesExist("__observableObject")
+    logError("the passed in object is not an Observable subclass")
+    return false
+  end if
+
+  if not observable.doesExist("contextId")
     logError("passed in node did not contain a context Id")
   end if
 
@@ -181,6 +198,23 @@ function BOM_unregisterObservable(observable) as boolean
   observable.setContext(invalid, invalid)
 end function
 
+' /**
+'  * @member BOM_cleanup
+'  * @memberof module:BaseObservableMixin
+'  * @instance
+'  * @description cleans up all vars associated with binding support
+'  */
+function BOM_cleanup()
+  if m._observableContext <> invalid
+    m._observableContext.unobserveFieldScoped("bindingMessage")
+  end if
+  'TODO - remove all bindings!
+  m.delete("_observables")
+  m.delete("_observableContextId")
+  m.delete("_observableFunctionPointers")
+  m.delete("_observableNodeBindings")
+  m.delete("_observableContext")
+end function
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 '++ Two way binding convenience
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -263,7 +297,8 @@ end function
 '  * @member BOM_ObserverCallback
 '  * @memberof module:BaseObservable
 '  * @instance
-'  * @description event handler for passing node events to the correct observable field or function
+'  * @description event handler for handling observable events, which then get
+'  *              passed onto the correct function
 '  * @param {event} event
 '  */
 function BOM_ObserverCallback(event) as void
@@ -285,6 +320,17 @@ function BOM_ObserverCallback(event) as void
   end for
 end function
 
+' /**
+'  * @member checkValidInputs
+'  * @memberof module:BaseObservableMixin
+'  * @instance
+'  * @description checks the given inputs are valid for binding uses, such as
+'  *              generating binding keys
+'  * @param {string} fieldName - name of source field
+'  * @param {node} targetNode - the target node - must have an id!
+'  * @param {string} targetField  - name of target field
+'  * @returns {boolean} true if valid
+'  */
 function BOM_checkValidInputs(fieldName, targetNode, targetField) as boolean
   if not isString(fieldName) or fieldName.trim() = ""
     logError("Tried to bind with illegal fieldName")

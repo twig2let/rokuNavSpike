@@ -18,6 +18,7 @@
 function BaseObservable() as object
   return {
     'vars
+    __observableObject: true 'for framework tracking
     isContextValid: false
     isBindingNotificationEnabled: true
     observers: {}
