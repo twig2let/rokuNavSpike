@@ -28,7 +28,7 @@ function BaseObservable() as object
 
     setContext: BO_setContext
     destroy: BO_destroy
-    checkValidInputs: BOM_checkValidInputs
+    checkValidInputs: OM_checkValidInputs
     getNodeFieldBindingKey: BO_getNodeFieldBindingKey
     toggleNotifications: BO_toggleNotifications
     firePendingObserverNotifications: BO_firePendingObserverNotifications

@@ -1,4 +1,4 @@
-'@Namespace BOM BaseObservableMixin
+'@Namespace BOM ObservableMixin
 '@Import rLogMixin
 '@Import Utils
 
@@ -7,20 +7,28 @@
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ' /**
-'  * @member BOM_ObserveField
-'  * @memberof module:BaseObservable
-'  * @instance
+'  * @member OM_ObserveField
+'  * @memberof module:ObservableMixin
+'  *
 '  * @description observes the field on observable, calling the passed in function when the value changes
 '  * @param {BaseObservable} observable instance of observable
 '  * @param {string} field field to observe on the passed in observable
 '  * @param {function} functionPointer method to invoke when the value changes
 '  * @returns {returnType} returnDescription
 '  */
-function BOM_ObserveField(observable, field, functionPointer)
-  if not BOM_registerObservable(observable)
+function OM_ObserveField(observable, field, functionPointer)
+  if not OM_registerObservable(observable)
     logError("could not observe field - the observable failed to regiser")
     return false
   end if
+
+  if not isFunction(functionPointer)
+    logError("the function pointer MUST be a function")
+    return false
+  end if
+
+  functionName = functionPointer.toStr().toStr().mid(10)
+
   if not m._observableFunctionPointers.doesExist(functionName)
     m._observableFunctionPointers[functionName] = functionPointer
   end if
@@ -28,18 +36,25 @@ function BOM_ObserveField(observable, field, functionPointer)
 end function
 
 ' /**
-'  * @member BOM_unobserveField
-'  * @memberof module:BaseObservableMixin
-'  * @instance
+'  * @member OM_unobserveField
+'  * @memberof module:ObservableMixin
+'  *
 '  * @description removes the observer for the given field
 '  * @param {paramType} paramDescription
 '  * @returns {returnType} returnDescription
 '  */
-function BOM_unobserveField(observable, fieldName, functionPointer) as boolean
-  if not BOM_isRegistered(observable)
+function OM_unobserveField(observable, fieldName, functionPointer) as boolean
+  if not OM_isRegistered(observable)
     logError("could not unobserve fiedl - the observable has not been registered")
     return false
   end if
+
+  if not isFunction(functionPointer)
+    logError("the function pointer MUST be a function")
+    return false
+  end if
+  functionName = functionPointer.toStr().toStr().mid(10)
+
   if not m._observableFunctionPointers.doesExist(functionName)
     m._observableFunctionPointers[functionName] = functionPointer
   end if
@@ -48,16 +63,17 @@ end function
 
 ' /**
 '  * @member bindNodeField
-'  * @memberof module:BaseObservable
-'  * @instance
-'  * @description binds a field on the passed in node to a field on this observer
+'  * @memberof module:ObservableMixin
+'  *
+'  * @description binds a field on the passed in node to a field on the passed in observer
 '  * @param {node} targetNode - the node to notify when the field changes - must have a unique id
 '  * @param {string} fieldName - field on the node to observe
-'  * @param {string} targetField - field on this observer to update with change values
+'  * @param {BaseObservable} observable - observable instance
+'  * @param {string} targetField - field on the observable to update with change values
 '  * @returns {boolean} true if successful
 '  */
-function BOM_bindNodeField(targetNode, fieldName, observable, targetField) as boolean
-  if not BOM_registerObservable(observable)
+function OM_bindNodeField(targetNode, fieldName, observable, targetField) as boolean
+  if not OM_registerObservable(observable)
     logError("could not bind node field - the observable failed to register")
     return false
   end if
@@ -70,11 +86,11 @@ function BOM_bindNodeField(targetNode, fieldName, observable, targetField) as bo
   nodeBindings = m._observableNodeBindings[nodeKey]
 
   if nodeBindings = invalid
-    targetNode.observeFieldScoped(fieldName, BOM_BindingCallback)
+    targetNode.observeFieldScoped(fieldName, "OM_BindingCallback")
     nodeBindings = {}
   end if
 
-  key = observable.getNodeFieldBindingKey(node, fieldName, targetField)
+  key = observable.getNodeFieldBindingKey(targetNode, fieldName, targetField)
 
   if nodeBindings.doesExist(key)
     logWarn("NodeBinding already existed for key")
@@ -96,15 +112,15 @@ end function
 
 ' /**
 '  * @member unbindNodeField
-'  * @memberof module:BaseObservable
-'  * @instance
-'  * @description unbinds a field on the passed in node to a field on this observer
+'  * @memberof module:ObservableMixin
+'  *
+'  * @description unbinds a field on the passed in node to a field on the passed in observable
 '  * @param {node} targetNode - the node to notify when the field changes - must have a unique id
 '  * @param {string} fieldName - field on the node to observe
 '  * @param {string} targetField - field on this observer to update with change values
 '  * @returns {boolean} true if successful
 '  */
-function BOM_unbindNodeField(targetNode, fieldName, observable, targetField) as boolean
+function OM_unbindNodeField(targetNode, fieldName, observable, targetField) as boolean
   if not m.checkValidInputs(fieldName, targetNode, targetField)
     return false
   end if
@@ -115,7 +131,7 @@ function BOM_unbindNodeField(targetNode, fieldName, observable, targetField) as 
     nodeBindings = {}
   end if
 
-  key = observable.getNodeFieldBindingKey(node, fieldName, targetField)
+  key = observable.getNodeFieldBindingKey(targetNode, fieldName, targetField)
   bindings = nodeBindings[key]
 
   if bindings <> invalid
@@ -123,7 +139,7 @@ function BOM_unbindNodeField(targetNode, fieldName, observable, targetField) as 
   end if
 
   if nodeBindings.count() = 0
-    node.unobserveFieldScoped(fieldName, "BOM_BindingCallback")
+    node.unobserveFieldScoped(fieldName)
   end if
 
   m._observableNodeBindings[nodeKey] = nodeBindings
@@ -132,21 +148,16 @@ end function
 
 ' /**
 '  * @member registerObservable
-'  * @memberof module:BaseObservable
-'  * @instance
+'  * @memberof module:ObservableMixin
+'  *
 '  * @description registers the observer with this node (i.e code behind for component/task)
 '  *              which wires up all the context info required to ensure
 '  *              scope preservation
 '  * @param {observable} instance of an observable
 '  * @returns {boolean} true if successfully registered
 '  */
-function BOM_registerObservable(observable) as boolean
-  if not isAACompatible(observable)
-    logError("non aa object passed in")
-    return false
-  end if
-
-  if not observable.doesExist("__observableObject")
+function OM_registerObservable(observable) as boolean
+  if not OM_isObservable(observable)
     logError("the passed in object is not an Observable subclass")
     return false
   end if
@@ -154,7 +165,7 @@ function BOM_registerObservable(observable) as boolean
   if observable.doesExist("contextId")
     contextId = observable.contextId
   else
-    logInfo("this observable has never been registered - setting it's context id")
+    logInfo("this observable has never been registered - creating a new context id")
     if m._observableContextId = invalid
       m["_observableContextId"] = -1
     end if
@@ -168,7 +179,7 @@ function BOM_registerObservable(observable) as boolean
     m._observableNodeBindings = {}
     m._observableContext = createObject("roSGNode", "ContentNode")
     m._observableContext.addField("bindingMessage", "assocarray", true)
-    m._observableContext.observeFieldScoped("bindingMessage", BOM_ObserverCallback)
+    m._observableContext.observeField("bindingMessage", "OM_ObserverCallback")
   end if
 
   registeredObservable = m._observables[contextId]
@@ -181,26 +192,17 @@ function BOM_registerObservable(observable) as boolean
 end function
 
 ' /**
-'  * @member BOM_unregisterObservable
-'  * @memberof module:BaseObservable
-'  * @instance
+'  * @member OM_unregisterObservable
+'  * @memberof module:ObservableMixin
+'  *
 '  * @description unregisters the passed in observable
 '  * @param {BaseObservable} instance of an observable
 '  * @returns {boolean} true if successfully removed
 '  */
-function BOM_unregisterObservable(observable) as boolean
-  if not isAACompatible(observable)
-    logError("non aa object passed in")
-    return false
-  end if
-
-  if not observable.doesExist("__observableObject")
-    logError("the passed in object is not an Observable subclass")
-    return false
-  end if
-
-  if not observable.doesExist("contextId")
+function OM_unregisterObservable(observable) as boolean
+  if not OM_isRegistered(observable)
     logError("passed in node did not contain a context Id")
+    return false
   end if
 
   if m._observables = invalid
@@ -208,15 +210,17 @@ function BOM_unregisterObservable(observable) as boolean
   end if
   m._observables.delete(observable.contextId)
   if m._observables.count() = 0
-    m._observableContext.unobserveFieldScoped("bindingMessage")
+    logInfo("unregistered last observable, cleaning up")
+    OM_cleanup()
   end if
   observable.setContext(invalid, invalid)
+  return true
 end function
 
 ' /**
-'  * @member BOM_bindObservableField
-'  * @memberof module:BaseObservableMixin
-'  * @instance
+'  * @member OM_bindObservableField
+'  * @memberof module:ObservableMixin
+'  *
 '  * @description binds the field from observable, to the target node's field
 '  * @param {observable} observable - instance of observable
 '  * @param {string} fieldName - name of field to bind
@@ -225,14 +229,17 @@ end function
 '  * @param {boolean} setInitialValue - whether value should be set straight away
 '  * @returns {boolean} true if successful
 '  */
-function BOM_bindObservableField(observable, fieldName, targetNode, targetField, setInitialValue = true) as boolean
-  return observable.bindField(fieldName, targetNode, targetField, setInitialValue)
-end function 
+function OM_bindObservableField(observable, fieldName, targetNode, targetField, setInitialValue = true) as boolean
+  if OM_isObservable(observable)
+    return observable.bindField(fieldName, targetNode, targetField, setInitialValue)
+  end if
+  return false
+end function
 ' /**
 ' /**
-'  * @member BOM_unbindObservableField
-'  * @memberof module:BaseObservableMixin
-'  * @instance
+'  * @member OM_unbindObservableField
+'  * @memberof module:ObservableMixin
+'  *
 '  * @description removes binding for the field from observable, to the target node's field
 '  * @param {observable} observable - instance of observable
 '  * @param {string} fieldName - name of field to bind
@@ -240,18 +247,21 @@ end function
 '  * @param {string} targetField - name of field to set on node
 '  * @returns {boolean} true if successful
 '  */
-function BOM_unbindObservableField(observable, fieldName, targetNode, targetField) as boolean
-  return observable.bindField(fieldName, targetNode, targetField)
-end function 
+function OM_unbindObservableField(observable, fieldName, targetNode, targetField) as boolean
+  if OM_isObservable(observable)
+    return observable.bindField(fieldName, targetNode, targetField)
+  end if
+  return false
+end function
 ' /**
-'  * @member BOM_cleanup
-'  * @memberof module:BaseObservableMixin
-'  * @instance
+'  * @member OM_cleanup
+'  * @memberof module:ObservableMixin
+'  *
 '  * @description cleans up all vars associated with binding support
 '  */
-function BOM_cleanup()
+function OM_cleanup()
   if m._observableContext <> invalid
-    m._observableContext.unobserveFieldScoped("bindingMessage")
+    m._observableContext.unobserveField("bindingMessage")
   end if
   'TODO - remove all bindings!
   m.delete("_observables")
@@ -266,9 +276,9 @@ end function
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ' /**
-'  * @member BOM_bindFieldTwoWay
-'  * @memberof module:BaseObservable
-'  * @instance
+'  * @member OM_bindFieldTwoWay
+'  * @memberof module:ObservableMixin
+'  *
 '  * @description wires the field on the observable to the target field on the targetNode
 '  * @param {BaseObservable} observable - instance to bind
 '  * @param {string} fieldName - field on observable to bind
@@ -276,25 +286,25 @@ end function
 '  * @param {string} targetField - field on target node to bind to
 '  * @param {boolean} setInitialValue, if true, then the binding is invoked with the current value
 '  */
-function BOM_bindFieldTwoWay(observable, fieldName, targetNode, targetField, setInitialValue = true) as void
-  BOM_bindObservableField(observable, fieldName, targetNode, targetField, setInitialValue)
-  BOM_bindNodeField(targetNode, fieldName, observable, targetField)
+function OM_bindFieldTwoWay(observable, fieldName, targetNode, targetField, setInitialValue = true) as void
+  OM_bindObservableField(observable, fieldName, targetNode, targetField, setInitialValue)
+  OM_bindNodeField(targetNode, fieldName, observable, targetField)
 end function
 
 ' /**
-'  * @member BOM_unbindFieldTwoWay
-'  * @memberof module:BaseObservable
-'  * @instance
+'  * @member OM_unbindFieldTwoWay
+'  * @memberof module:ObservableMixin
+'  *
 '  * @description unwires the field on the observable to the target field on the targetNode
 '  * @param {BaseObservable} observable - instance to bind
 '  * @param {string} fieldName - field on observable to bind
 '  * @param {roSGNode} targetNode - node to bind to
 '  * @param {string} targetField - field on target node to bind to
 '  */
-function BOM_unbindFieldTwoWay(observable, fieldName, targetNode, targetField) as void
-  if BOM_isRegistered(observable)
-    BOM_unbindObservableField(observable, targetNode, fieldName, observable, targetField)
-    BOM_unbindNodeField(targetNode, fieldName, observable, targetField)
+function OM_unbindFieldTwoWay(observable, fieldName, targetNode, targetField) as void
+  if OM_isRegistered(observable)
+    OM_unbindObservableField(observable, fieldName, targetNode, targetField)
+    OM_unbindNodeField(targetNode, fieldName, observable, targetField)
   else
     logError("could not unbind two way - the observable has not yet been registered")
   end if
@@ -307,16 +317,21 @@ end function
 'The following methods are mixed in as conveniences
 
 ' /**
-'  * @member BOM_BindingCallback
-'  * @memberof module:BaseObservable
-'  * @instance
-'  * @description event handler for passing node events to the correct observable field or function
+'  * @member OM_BindingCallback
+'  * @memberof module:ObservableMixin
+'  *
+'  * @description event handler for processing node events to set the value on
+'  *              the correct observable field or invoke the correct observable function
 '  * @param {event} event
 '  */
-function BOM_BindingCallback(event) as void
-  data = event.getData()
+function OM_BindingCallback(event) as void
   if m._observableNodeBindings = invalid
     logError("Binding callback invoked when no node bindings were registered")
+    return
+  end if
+
+  if m._observables = invalid
+    logError("Observer callback invoked when no node observables were registered")
     return
   end if
 
@@ -327,11 +342,10 @@ function BOM_BindingCallback(event) as void
     bindingData = nodeBindings[key]
     observable = m._observables[bindingData.contextId]
     if isAACompatible(observable)
-      targetField = observable[bindingData.targetField]
-      if isFunction(targetField)
+      if isFunction(observable[bindingData.targetField])
         observable[bindingData.targetField](value)
-      else if isString(targetField)
-        observable.setField(targetField, value)
+      else if observable.doesExist(bindingData.targetField)
+        observable.setField(bindingData.targetField, value)
       else
         logError("could not find the target on the observable for nodKey", nodeKey, "key", key)
       end if
@@ -342,23 +356,24 @@ function BOM_BindingCallback(event) as void
 end function
 
 ' /**
-'  * @member BOM_ObserverCallback
-'  * @memberof module:BaseObservable
-'  * @instance
+'  * @member OM_ObserverCallback
+'  * @memberof module:ObservableMixin
+'  *
 '  * @description event handler for handling observable events, which then get
 '  *              passed onto the correct function
 '  * @param {event} event
 '  */
-function BOM_ObserverCallback(event) as void
-  data =  event.getData()
+function OM_ObserverCallback(event) as void
   if m._observables = invalid
     logError("Observer callback invoked when no node observables were registered")
     return
   end if
+
+  data =  event.getData()
   observable = m._observables[data.contextId]
-  bindings = observable.bindings[data.fieldName]
-  value = observable[fieldName]
-  for each functionName in bindings
+  observers = observable.observers[data.fieldName]
+  value = observable[data.fieldName]
+  for each functionName in observers
     functionPointer = m._observableFunctionPointers[functionName]
     if functionPointer <> invalid
       functionPointer(value)
@@ -370,8 +385,8 @@ end function
 
 ' /**
 '  * @member checkValidInputs
-'  * @memberof module:BaseObservableMixin
-'  * @instance
+'  * @memberof module:ObservableMixin
+'  *
 '  * @description checks the given inputs are valid for binding uses, such as
 '  *              generating binding keys
 '  * @param {string} fieldName - name of source field
@@ -379,7 +394,7 @@ end function
 '  * @param {string} targetField  - name of target field
 '  * @returns {boolean} true if valid
 '  */
-function BOM_checkValidInputs(fieldName, targetNode, targetField) as boolean
+function OM_checkValidInputs(fieldName, targetNode, targetField) as boolean
   if not isString(fieldName) or fieldName.trim() = ""
     logError("Tried to bind with illegal fieldName")
     return false
@@ -403,7 +418,7 @@ function BOM_checkValidInputs(fieldName, targetNode, targetField) as boolean
   return true
 end function
 
-function BOM_isRegistered(observable) as boolean
+function OM_isObservable(observable) as boolean
   if not isAACompatible(observable)
     logError("non aa object passed in")
     return false
@@ -414,8 +429,9 @@ function BOM_isRegistered(observable) as boolean
     return false
   end if
 
-  if observable.doesExist("contextId")
-    return true
-  end if
-  return false
+  return true
+end function
+
+function OM_isRegistered(observable) as boolean
+  return OM_isObservable(observable) and observable.doesExist("contextId")
 end function
