@@ -18,6 +18,7 @@
 '  */
 function BOM_ObserveField(observable, field, functionPointer)
   if not BOM_registerObservable(observable)
+    logError("could not observe field - the observable failed to regiser")
     return false
   end if
   if not m._observableFunctionPointers.doesExist(functionName)
@@ -26,10 +27,23 @@ function BOM_ObserveField(observable, field, functionPointer)
   observable.observeField(field, functionName, true)
 end function
 
-function BOM_unobserveField(fieldName, functionName) as boolean
-  if not m.checkValidInputs(fieldName, targetNode, targetField)
+' /**
+'  * @member BOM_unobserveField
+'  * @memberof module:BaseObservableMixin
+'  * @instance
+'  * @description removes the observer for the given field
+'  * @param {paramType} paramDescription
+'  * @returns {returnType} returnDescription
+'  */
+function BOM_unobserveField(observable, fieldName, functionPointer) as boolean
+  if not BOM_isRegistered(observable)
+    logError("could not unobserve fiedl - the observable has not been registered")
     return false
   end if
+  if not m._observableFunctionPointers.doesExist(functionName)
+    m._observableFunctionPointers[functionName] = functionPointer
+  end if
+  observable.observeField(field, functionName, true)
 end function
 
 ' /**
@@ -44,6 +58,7 @@ end function
 '  */
 function BOM_bindNodeField(targetNode, fieldName, observable, targetField) as boolean
   if not BOM_registerObservable(observable)
+    logError("could not bind node field - the observable failed to register")
     return false
   end if
 
@@ -199,6 +214,36 @@ function BOM_unregisterObservable(observable) as boolean
 end function
 
 ' /**
+'  * @member BOM_bindObservableField
+'  * @memberof module:BaseObservableMixin
+'  * @instance
+'  * @description binds the field from observable, to the target node's field
+'  * @param {observable} observable - instance of observable
+'  * @param {string} fieldName - name of field to bind
+'  * @param {node} targetNode - node to set bound field value on
+'  * @param {string} targetField - name of field to set on node
+'  * @param {boolean} setInitialValue - whether value should be set straight away
+'  * @returns {boolean} true if successful
+'  */
+function BOM_bindObservableField(observable, fieldName, targetNode, targetField, setInitialValue = true) as boolean
+  return observable.bindField(fieldName, targetNode, targetField, setInitialValue)
+end function 
+' /**
+' /**
+'  * @member BOM_unbindObservableField
+'  * @memberof module:BaseObservableMixin
+'  * @instance
+'  * @description removes binding for the field from observable, to the target node's field
+'  * @param {observable} observable - instance of observable
+'  * @param {string} fieldName - name of field to bind
+'  * @param {node} targetNode - node to set bound field value on
+'  * @param {string} targetField - name of field to set on node
+'  * @returns {boolean} true if successful
+'  */
+function BOM_unbindObservableField(observable, fieldName, targetNode, targetField) as boolean
+  return observable.bindField(fieldName, targetNode, targetField)
+end function 
+' /**
 '  * @member BOM_cleanup
 '  * @memberof module:BaseObservableMixin
 '  * @instance
@@ -215,6 +260,7 @@ function BOM_cleanup()
   m.delete("_observableNodeBindings")
   m.delete("_observableContext")
 end function
+
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 '++ Two way binding convenience
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -231,8 +277,7 @@ end function
 '  * @param {boolean} setInitialValue, if true, then the binding is invoked with the current value
 '  */
 function BOM_bindFieldTwoWay(observable, fieldName, targetNode, targetField, setInitialValue = true) as void
-  registerObservable(observable)
-  observable.bindField(fieldName, targetNode, targetField, setInitialValue)
+  BOM_bindObservableField(observable, fieldName, targetNode, targetField, setInitialValue)
   BOM_bindNodeField(targetNode, fieldName, observable, targetField)
 end function
 
@@ -247,9 +292,12 @@ end function
 '  * @param {string} targetField - field on target node to bind to
 '  */
 function BOM_unbindFieldTwoWay(observable, fieldName, targetNode, targetField) as void
-  registerObservable(observable)
-  observable.unbindField(fieldName, targetNode, targetField)
-  BOM_unbindNodeField(targetNode, fieldName, observable, targetField)
+  if BOM_isRegistered(observable)
+    BOM_unbindObservableField(observable, targetNode, fieldName, observable, targetField)
+    BOM_unbindNodeField(targetNode, fieldName, observable, targetField)
+  else
+    logError("could not unbind two way - the observable has not yet been registered")
+  end if
 end function
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -353,4 +401,21 @@ function BOM_checkValidInputs(fieldName, targetNode, targetField) as boolean
   end if
 
   return true
+end function
+
+function BOM_isRegistered(observable) as boolean
+  if not isAACompatible(observable)
+    logError("non aa object passed in")
+    return false
+  end if
+
+  if not observable.doesExist("__observableObject")
+    logError("the passed in object is not an Observable subclass")
+    return false
+  end if
+
+  if observable.doesExist("contextId")
+    return true
+  end if
+  return false
 end function
