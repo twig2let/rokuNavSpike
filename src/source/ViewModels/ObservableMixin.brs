@@ -70,9 +70,10 @@ end function
 '  * @param {string} fieldName - field on the node to observe
 '  * @param {BaseObservable} observable - observable instance
 '  * @param {string} targetField - field on the observable to update with change values
+'  * @param {boolean} setInitialValue - if true, then the initial value is populated
 '  * @returns {boolean} true if successful
 '  */
-function OM_bindNodeField(targetNode, fieldName, observable, targetField) as boolean
+function OM_bindNodeField(targetNode, fieldName, observable, targetField, setInitialValue = true) as boolean
   if not OM_registerObservable(observable)
     logError("could not bind node field - the observable failed to register")
     return false
@@ -107,6 +108,9 @@ function OM_bindNodeField(targetNode, fieldName, observable, targetField) as boo
   nodeBindings[key] = {"contextId": observable.contextId, "targetField": targetField}
 
   m._observableNodeBindings[nodeKey] = nodeBindings
+  if setInitialValue
+    observable.setField(targetField, targetNode[fieldName])
+  end if
   return true
 end function
 
