@@ -440,12 +440,38 @@ function OT_bindObservableField_multiField_twoNodes_measure_100times_compareWith
   end for
 end function
 
-'@Only
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 '@It tests OM_bindFieldTwoWay
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-'@Only
+'@Test valid observable, multiple fields
+function OT_bindFieldTwoWay_multipleFields_oneNode()
+  o1 = BaseObservable()
+  o1.id = "o1"
+  o1.f1 = "title"
+  o1.f2 = "title"
+
+  n1 = createObject("roSGNode", "ContentNode")
+  n1.id = "n1"
+
+  OM_bindFieldTwoWay(o1, "f1", n1, "title")
+  OM_bindFieldTwoWay(o1, "f2", n1, "title")
+
+  m.assertEqual(n1.title, "title")
+  n1.title = "changed"
+  m.assertEqual(o1.f1, "changed")
+  m.assertEqual(o1.f2, "changed")
+  o1.setField("f1", "changed2")
+  m.assertEqual(o1.f2, "changed2")
+  m.assertEqual(n1.title, "changed2")
+  n1.title = "changed3"
+  m.assertEqual(o1.f1, "changed3")
+  m.assertEqual(o1.f2, "changed3")
+  o1.setField("f1", "changed4")
+  m.assertEqual(n1.title, "changed4")
+  m.assertEqual(o1.f2, "changed4")
+end function
+
 '@Test valid observable, one field
 function OT_bindFieldTwoWay_oneField_oneNode()
   o1 = BaseObservable()
@@ -467,13 +493,142 @@ function OT_bindFieldTwoWay_oneField_oneNode()
   m.assertEqual(n1.title, "changed4")
 end function
 
+'@Test valid observable, one field
+function OT_bindFieldTwoWay_multipleNodeFields_oneNode()
+  o1 = BaseObservable()
+  o1.id = "o1"
+  o1.f1 = "title"
+  o1.f2 = "description"
+
+  n1 = createObject("roSGNode", "ContentNode")
+  n1.id = "n1"
+
+  OM_bindFieldTwoWay(o1, "f1", n1, "title")
+  OM_bindFieldTwoWay(o1, "f2", n1, "description")
+  m.assertEqual(n1.title, "title")
+  m.assertEqual(n1.description, "description")
+  n1.title = "changed"
+  n1.description = "dchanged"
+  m.assertEqual(o1.f1, "changed")
+  m.assertEqual(o1.f2, "dchanged")
+  o1.setField("f1", "changed2")
+  o1.setField("f2", "dchanged2")
+  m.assertEqual(n1.title, "changed2")
+  m.assertEqual(n1.description, "dchanged2")
+  n1.title = "changed3"
+  n1.description = "dchanged3"
+  m.assertEqual(o1.f1, "changed3")
+  m.assertEqual(o1.f2, "dchanged3")
+  o1.setField("f1", "changed4")
+  o1.setField("f2", "dchanged4")
+  m.assertEqual(n1.title, "changed4")
+  m.assertEqual(n1.description, "dchanged4")
+end function
+
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-'++ TODO
+'@It tests OM_unbindFieldTwoWay
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-'OM_bindFieldTwoWay
-'OM_unbindFieldTwoWay
+'@Test valid observable, multiple fields
+function OT_unbindFieldTwoWay_multipleFields_oneNode()
+  o1 = BaseObservable()
+  o1.id = "o1"
+  o1.f1 = "title"
+  o1.f2 = "title"
 
+  n1 = createObject("roSGNode", "ContentNode")
+  n1.id = "n1"
+
+  OM_bindFieldTwoWay(o1, "f1", n1, "title")
+  OM_bindFieldTwoWay(o1, "f2", n1, "title")
+
+  m.assertEqual(n1.title, "title")
+  n1.title = "changed"
+  m.assertEqual(o1.f1, "changed")
+  m.assertEqual(o1.f2, "changed")
+  o1.setField("f1", "changed2")
+  m.assertEqual(o1.f2, "changed2")
+  m.assertEqual(n1.title, "changed2")
+  n1.title = "changed3"
+  m.assertEqual(o1.f1, "changed3")
+  m.assertEqual(o1.f2, "changed3")
+  o1.setField("f1", "changed4")
+  m.assertEqual(n1.title, "changed4")
+  m.assertEqual(o1.f2, "changed4")
+end function
+
+'@Test valid observable, one field
+function OT_unbindFieldTwoWay_oneField_oneNode()
+  o1 = BaseObservable()
+  o1.id = "o1"
+  o1.f1 = "title"
+
+  n1 = createObject("roSGNode", "ContentNode")
+  n1.id = "n1"
+
+  OM_bindFieldTwoWay(o1, "f1", n1, "title")
+  m.assertEqual(n1.title, "title")
+  n1.title = "changed"
+  m.assertEqual(o1.f1, "changed")
+  o1.setField("f1", "changed2")
+  m.assertEqual(n1.title, "changed2")
+  n1.title = "changed3"
+  m.assertEqual(o1.f1, "changed3")
+  o1.setField("f1", "changed4")
+  m.assertEqual(n1.title, "changed4")
+
+  OM_unbindFieldTwoWay(o1, "f1", n1, "title")
+
+  n1.title = "changed5"
+  m.assertEqual(o1.f1, "changed4")
+  o1.setField("f1", "changed6")
+  m.assertEqual(n1.title, "changed5")
+end function
+
+'@Test valid observable, one field
+function OT_unbindFieldTwoWay_multipleNodeFields_oneNode()
+  o1 = BaseObservable()
+  o1.id = "o1"
+  o1.f1 = "title"
+  o1.f2 = "description"
+
+  n1 = createObject("roSGNode", "ContentNode")
+  n1.id = "n1"
+
+  OM_bindFieldTwoWay(o1, "f1", n1, "title")
+  OM_bindFieldTwoWay(o1, "f2", n1, "description")
+  m.assertEqual(n1.title, "title")
+  m.assertEqual(n1.description, "description")
+  n1.title = "changed"
+  n1.description = "dchanged"
+  m.assertEqual(o1.f1, "changed")
+  m.assertEqual(o1.f2, "dchanged")
+  o1.setField("f1", "changed2")
+  o1.setField("f2", "dchanged2")
+  m.assertEqual(n1.title, "changed2")
+  m.assertEqual(n1.description, "dchanged2")
+  n1.title = "changed3"
+  n1.description = "dchanged3"
+  m.assertEqual(o1.f1, "changed3")
+  m.assertEqual(o1.f2, "dchanged3")
+  o1.setField("f1", "changed4")
+  o1.setField("f2", "dchanged4")
+  m.assertEqual(n1.title, "changed4")
+  m.assertEqual(n1.description, "dchanged4")
+
+  OM_unbindFieldTwoWay(o1, "f1", n1, "title")
+  OM_unbindFieldTwoWay(o1, "f2", n1, "description")
+
+  n1.title = "changed5"
+  n1.description = "dchanged5"
+  m.assertEqual(o1.f1, "changed4")
+  m.assertEqual(o1.f2, "dchanged4")
+  o1.setField("f1", "changed6")
+  o1.setField("f2", "dchanged6")
+  m.assertEqual(n1.title, "changed5")
+  m.assertEqual(n1.description, "dchanged5")
+
+end function
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 '++ callback functions for observer testing

@@ -1,4 +1,3 @@
-'@Only
 '@TestSuite [OMT] ObservableMixin Tests
 
 '@BeforeEach

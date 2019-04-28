@@ -133,22 +133,22 @@ end function
 '  *
 '  * @description unbinds a field on the passed in node to a field on the passed in observable
 '  * @param {node} targetNode - the node to notify when the field changes - must have a unique id
-'  * @param {string} fieldName - field on the node to observe
-'  * @param {string} targetField - field on this observer to update with change values
+'  * @param {string} nodeField - field on the node to observe
+'  * @param {string} observableField - field on this observer to update with change values
 '  * @returns {boolean} true if successful
 '  */
-function OM_unbindNodeField(targetNode, fieldName, observable, targetField) as boolean
-  if not m.checkValidInputs(fieldName, targetNode, targetField)
+function OM_unbindNodeField(targetNode, nodeField, observable, observableField) as boolean
+  if not OM_checkValidInputs(observableField, targetNode, nodeField)
     return false
   end if
 
-  nodeKey = targetNode.id + "_" + fieldName
+  nodeKey = targetNode.id + "_" + nodeField
   nodeBindings = m._observableNodeBindings[nodeKey]
   if nodeBindings = invalid
     nodeBindings = {}
   end if
 
-  key = observable.getNodeFieldBindingKey(targetNode, fieldName, targetField)
+  key = observable.getNodeFieldBindingKey(targetNode, nodeField, observableField)
   bindings = nodeBindings[key]
 
   if bindings <> invalid
@@ -156,10 +156,13 @@ function OM_unbindNodeField(targetNode, fieldName, observable, targetField) as b
   end if
 
   if nodeBindings.count() = 0
-    node.unobserveFieldScoped(fieldName)
+    targetNode.unobserveFieldScoped(nodeField)
+    m._observableNodeBindings.delete(nodeKey)
+  else
+    m._observableNodeBindings[nodeKey] = nodeBindings
+
   end if
 
-  m._observableNodeBindings[nodeKey] = nodeBindings
   return true
 end function
 
@@ -322,14 +325,14 @@ end function
 '  *
 '  * @description unwires the field on the observable to the target field on the targetNode
 '  * @param {BaseObservable} observable - instance to bind
-'  * @param {string} fieldName - field on observable to bind
+'  * @param {string} observableField - field on observable to bind
 '  * @param {roSGNode} targetNode - node to bind to
-'  * @param {string} targetField - field on target node to bind to
+'  * @param {string} nodeField - field on target node to bind to
 '  */
-function OM_unbindFieldTwoWay(observable, fieldName, targetNode, targetField) as void
+function OM_unbindFieldTwoWay(observable, observableField, targetNode, nodeField) as void
   if OM_isRegistered(observable)
-    OM_unbindObservableField(observable, fieldName, targetNode, targetField)
-    OM_unbindNodeField(targetNode, fieldName, observable, targetField)
+    OM_unbindObservableField(observable, observableField, targetNode, nodeField)
+    OM_unbindNodeField(targetNode, nodeField, observable, observableField)
   else
     logError("could not unbind two way - the observable has not yet been registered")
   end if
