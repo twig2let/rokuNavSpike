@@ -16,9 +16,9 @@
 '  * @param {function} functionPointer method to invoke when the value changes
 '  * @returns {returnType} returnDescription
 '  */
-function OM_ObserveField(observable, field, functionPointer)
+function OM_ObserveField(observable, field, functionPointer) as boolean
   if not OM_registerObservable(observable)
-    logError("could not observe field - the observable failed to regiser")
+    logError("could not observe field - the observable failed to register")
     return false
   end if
 
@@ -27,12 +27,14 @@ function OM_ObserveField(observable, field, functionPointer)
     return false
   end if
 
-  functionName = functionPointer.toStr().toStr().mid(10)
+  functionName = functionPointer.toStr().mid(10)
 
   if not m._observableFunctionPointers.doesExist(functionName)
+    m._observableFunctionPointerCounts[functionName] = 0
     m._observableFunctionPointers[functionName] = functionPointer
   end if
-  observable.observeField(field, functionName, true)
+  m._observableFunctionPointerCounts[functionName] = m._observableFunctionPointerCounts[functionName] +1
+  return observable.observeField(field, functionName, true)
 end function
 
 ' /**
@@ -45,7 +47,7 @@ end function
 '  */
 function OM_unobserveField(observable, fieldName, functionPointer) as boolean
   if not OM_isRegistered(observable)
-    logError("could not unobserve fiedl - the observable has not been registered")
+    logError("could not unobserve field - the observable has not been registered")
     return false
   end if
 
@@ -53,12 +55,16 @@ function OM_unobserveField(observable, fieldName, functionPointer) as boolean
     logError("the function pointer MUST be a function")
     return false
   end if
-  functionName = functionPointer.toStr().toStr().mid(10)
+  functionName = functionPointer.toStr().mid(10)
+  if m._observableFunctionPointerCounts.doesExist(functionName)
+    m._observableFunctionPointerCounts[functionName] = m._observableFunctionPointerCounts[functionName] - 1
 
-  if not m._observableFunctionPointers.doesExist(functionName)
-    m._observableFunctionPointers[functionName] = functionPointer
+    if m._observableFunctionPointerCounts[functionName] = 0
+      m._observableFunctionPointers.delete(functionName)
+      m._observableFunctionPointerCounts.delete(functionName)
+    end if
   end if
-  observable.observeField(field, functionName, true)
+  return observable.unobserveField(fieldName, functionName)
 end function
 
 ' /**
@@ -192,6 +198,7 @@ function OM_registerObservable(observable) as boolean
   if m._observables = invalid
     m._observables = {}
     m._observableFunctionPointers = {}
+    m._observableFunctionPointerCounts = {}
     m._observableNodeBindings = {}
     m._observableContext = createObject("roSGNode", "ContentNode")
     m._observableContext.addField("bindingMessage", "assocarray", true)
@@ -252,7 +259,7 @@ function OM_bindObservableField(observable, fieldName, targetNode, targetField, 
   end if
   return false
 end function
-' /**
+
 ' /**
 '  * @member OM_unbindObservableField
 '  * @memberof module:ObservableMixin
@@ -266,7 +273,7 @@ end function
 '  */
 function OM_unbindObservableField(observable, fieldName, targetNode, targetField) as boolean
   if OM_isObservable(observable)
-    return observable.bindField(fieldName, targetNode, targetField)
+    return observable.unbindField(fieldName, targetNode, targetField)
   end if
   return false
 end function
@@ -286,6 +293,7 @@ function OM_cleanup()
   m.delete("_observableFunctionPointers")
   m.delete("_observableNodeBindings")
   m.delete("_observableContext")
+  m.delete("_observableFunctionPointerCounts")
 end function
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -296,7 +304,7 @@ end function
 '  * @member OM_bindFieldTwoWay
 '  * @memberof module:ObservableMixin
 '  *
-'  * @description wires the field on the observable to the target field on the targetNode
+'  * @description wires the field on the observable to the target field on the targetNode, and will update it in a 2 way relationship
 '  * @param {BaseObservable} observable - instance to bind
 '  * @param {string} fieldName - field on observable to bind
 '  * @param {roSGNode} targetNode - node to bind to
@@ -305,7 +313,7 @@ end function
 '  */
 function OM_bindFieldTwoWay(observable, fieldName, targetNode, targetField, setInitialValue = true) as void
   OM_bindObservableField(observable, fieldName, targetNode, targetField, setInitialValue)
-  OM_bindNodeField(targetNode, fieldName, observable, targetField)
+  OM_bindNodeField(targetNode, targetField, observable, fieldName, false)
 end function
 
 ' /**
@@ -365,7 +373,7 @@ function OM_BindingCallback(event) as void
         if not observable.doesExist(bindingData.targetField)
           logWarn(bindingData.targetField, "was not present on observable when setting value for nodeKey", nodeKey)
         end if
-        observable.setField(bindingData.targetField, value)
+        observable.setField(bindingData.targetField, value, key)
       end if
     else
       logError("could not find observable with context id ", contextId)

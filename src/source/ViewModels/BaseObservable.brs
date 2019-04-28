@@ -120,7 +120,7 @@ end function
 '  * @param {boolean} alwaysNotify - if true, will notify on same value being set
 '  * @returns {boolean} true if succesful
 '  */
-function BO_setField(fieldName, value) as boolean
+function BO_setField(fieldName, value, originKey = invalid) as boolean
   if not isString(fieldName) or fieldName.trim() = ""
     logError("Tried to setField with illegal field name")
     return false
@@ -133,7 +133,7 @@ function BO_setField(fieldName, value) as boolean
 
   m[fieldName] = value
   m.notify(fieldName, value)
-  m.notifyBinding(fieldName, value)
+  m.notifyBinding(fieldName, value, originKey)
   return true
 end function
 
@@ -169,6 +169,7 @@ function BO_observeField(fieldName, functionName, setInitialValue = true) as boo
   if setInitialValue
     m.notify(fieldName, m[fieldName])
   end if
+  return true
 end function
 
 function BO_unobserveField(fieldName, functionName) as boolean
@@ -193,6 +194,7 @@ function BO_unobserveField(fieldName, functionName) as boolean
   else
     m.observers[fieldName] = observers
   end if
+  return true
 end function
 
 function BO_unobserveAllFields() as void
@@ -319,8 +321,9 @@ end function
 '  * @param {string} fieldName - field to update
 '  * @param {any} value - field to update
 '  * @param {string} specificKey - if present, will specify a particular binding key
+'  * @param {string} excludeKey - if present, will not update this node field - to stop cyclical bindings 
 '  */
-function BO_notifyBinding(fieldName, value, specificKey = invalid) as boolean
+function BO_notifyBinding(fieldName, value, specificKey = invalid, excludeKey = invalid) as boolean
   bindings = m.bindings[fieldName]
   if bindings = invalid
     ' logVerbose("No bindings for field ", fieldName)
@@ -329,7 +332,7 @@ function BO_notifyBinding(fieldName, value, specificKey = invalid) as boolean
 
   if m.isBindingNotificationEnabled
     for each key in bindings
-      if specificKey = invalid or specificKey = key
+      if (specificKey = invalid or specificKey = key) and (excludeKey = invalid or excludeKey <> key)
         binding = bindings[key]
         if type(binding.node) = "roSGNode"
           binding.node.setField(binding.targetField, value)

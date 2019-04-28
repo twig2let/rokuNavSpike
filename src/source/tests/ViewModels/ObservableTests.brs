@@ -312,7 +312,7 @@ function OT_bindObservableField_oneField_oneNode()
 
   n1 = createObject("roSGNode", "ContentNode")
   n1.id = "n1"
-  
+
 
   OM_bindObservableField(o1, "f1", n1, "title")
   m.assertEqual(n1.title, "title")
@@ -439,6 +439,41 @@ function OT_bindObservableField_multiField_twoNodes_measure_100times_compareWith
     n2.UserStarRating = i
   end for
 end function
+
+'@Only
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+'@It tests OM_bindFieldTwoWay
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+'@Only
+'@Test valid observable, one field
+function OT_bindFieldTwoWay_oneField_oneNode()
+  o1 = BaseObservable()
+  o1.id = "o1"
+  o1.f1 = "title"
+
+  n1 = createObject("roSGNode", "ContentNode")
+  n1.id = "n1"
+
+  OM_bindFieldTwoWay(o1, "f1", n1, "title")
+  m.assertEqual(n1.title, "title")
+  n1.title = "changed"
+  m.assertEqual(o1.f1, "changed")
+  o1.setField("f1", "changed2")
+  m.assertEqual(n1.title, "changed2")
+  n1.title = "changed3"
+  m.assertEqual(o1.f1, "changed3")
+  o1.setField("f1", "changed4")
+  m.assertEqual(n1.title, "changed4")
+end function
+
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+'++ TODO
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+'OM_bindFieldTwoWay
+'OM_unbindFieldTwoWay
+
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 '++ callback functions for observer testing
