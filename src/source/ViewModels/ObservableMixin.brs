@@ -109,7 +109,14 @@ function OM_bindNodeField(targetNode, fieldName, observable, targetField, setIni
 
   m._observableNodeBindings[nodeKey] = nodeBindings
   if setInitialValue
-    observable.setField(targetField, targetNode[fieldName])
+    if isFunction(observable[targetField])
+      observable[targetField](targetNode[fieldName])
+    else
+      if not observable.doesExist(targetField)
+        logWarn(targetField, "was not present on observable when setting initial value for node key", nodeKey)
+      end if
+      observable.setField(targetField, targetNode[fieldName])
+    end if
   end if
   return true
 end function
@@ -156,9 +163,11 @@ end function
 '  *
 '  * @description registers the observer with this node (i.e code behind for component/task)
 '  *              which wires up all the context info required to ensure
-'  *              scope preservation
+'  *              scope preservation.
+'  *              if this observable is already registered, then this method returns true
+'  *              This method is called whenever we try to bindObservable, observe, bindNode
 '  * @param {observable} instance of an observable
-'  * @returns {boolean} true if successfully registered
+'  * @returns {boolean} true if successfully registered, or was already registered
 '  */
 function OM_registerObservable(observable) as boolean
   if not OM_isObservable(observable)
@@ -166,16 +175,19 @@ function OM_registerObservable(observable) as boolean
     return false
   end if
 
-  if observable.doesExist("contextId")
-    contextId = observable.contextId
-  else
-    logInfo("this observable has never been registered - creating a new context id")
-    if m._observableContextId = invalid
-      m["_observableContextId"] = -1
-    end if
-    m._observableContextId++
-    contextId = str(m._observableContextId).trim()
+  if observable.doesExist("contextId") and m._observables <> invalid and m._observables.doesExist(observable.contextId)
+    'we don't need to reregister this observable
+    'TODO - check if it's the same observable; but that will require
+    'enforcing ids or internal guids..
+    return true
   end if
+
+  logVerbose("this observable has never been registered - creating a new context id")
+  if m._observableContextId = invalid
+    m["_observableContextId"] = -1
+  end if
+  m._observableContextId++
+  contextId = str(m._observableContextId).trim()
 
   if m._observables = invalid
     m._observables = {}
@@ -188,9 +200,10 @@ function OM_registerObservable(observable) as boolean
 
   registeredObservable = m._observables[contextId]
   if registeredObservable = invalid
-    logInfo("this observable was not registered - registering it now with context id ", contextId)
     m._observables[contextId] = observable
     observable.setContext(contextId, m._observableContext)
+  else
+    logError("this context id was registered before - node binding context is corrupt!! This should not happen - this needs investigation! - contextId: ", contextId)
   end if
   return true
 end function
@@ -234,7 +247,7 @@ end function
 '  * @returns {boolean} true if successful
 '  */
 function OM_bindObservableField(observable, fieldName, targetNode, targetField, setInitialValue = true) as boolean
-  if OM_isObservable(observable)
+  if OM_registerObservable(observable)
     return observable.bindField(fieldName, targetNode, targetField, setInitialValue)
   end if
   return false
@@ -348,10 +361,11 @@ function OM_BindingCallback(event) as void
     if isAACompatible(observable)
       if isFunction(observable[bindingData.targetField])
         observable[bindingData.targetField](value)
-      else if observable.doesExist(bindingData.targetField)
-        observable.setField(bindingData.targetField, value)
       else
-        logError("could not find the target on the observable for nodKey", nodeKey, "key", key)
+        if not observable.doesExist(bindingData.targetField)
+          logWarn(bindingData.targetField, "was not present on observable when setting value for nodeKey", nodeKey)
+        end if
+        observable.setField(bindingData.targetField, value)
       end if
     else
       logError("could not find observable with context id ", contextId)
@@ -376,15 +390,17 @@ function OM_ObserverCallback(event) as void
   data =  event.getData()
   observable = m._observables[data.contextId]
   observers = observable.observers[data.fieldName]
-  value = observable[data.fieldName]
-  for each functionName in observers
-    functionPointer = m._observableFunctionPointers[functionName]
-    if functionPointer <> invalid
-      functionPointer(value)
-    else
-      logError("could not find functoin pointer for function ", functionName)
-    end if
-  end for
+  if observers <> invalid
+    value = observable[data.fieldName]
+    for each functionName in observers
+      functionPointer = m._observableFunctionPointers[functionName]
+      if functionPointer <> invalid
+        functionPointer(value)
+      else
+        logError("could not find functoin pointer for function ", functionName)
+      end if
+    end for
+  end if
 end function
 
 ' /**

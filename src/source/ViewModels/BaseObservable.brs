@@ -323,7 +323,7 @@ end function
 function BO_notifyBinding(fieldName, value, specificKey = invalid) as boolean
   bindings = m.bindings[fieldName]
   if bindings = invalid
-    logDebug("No bindings for field ", fieldName)
+    ' logVerbose("No bindings for field ", fieldName)
     return false
   end if
 
