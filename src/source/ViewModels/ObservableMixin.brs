@@ -7,16 +7,21 @@
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ' /**
-'  * @member OM_ObserveField
+'  * @member OM_observeField
 '  * @memberof module:ObservableMixin
 '  *
 '  * @description observes the field on observable, calling the passed in function when the value changes
 '  * @param {BaseObservable} observable instance of observable
 '  * @param {string} field field to observe on the passed in observable
 '  * @param {function} functionPointer method to invoke when the value changes
+'  * @param {assocarray} properties - the properties for the particular binding
+'  *                     - can include
+'  *                     isSettingInitialValue -(default true) if true,
+'  *                          will set the value instantly
+'  *                     transformFunction - function pointer to a value that will modify the value before calling the binding.
 '  * @returns {returnType} returnDescription
 '  */
-function OM_ObserveField(observable, field, functionPointer) as boolean
+function OM_observeField(observable, field, functionPointer, properties = invalid) as boolean
   if not OM_registerObservable(observable)
     logError("could not observe field - the observable failed to register")
     return false
@@ -34,7 +39,7 @@ function OM_ObserveField(observable, field, functionPointer) as boolean
     m._observableFunctionPointers[functionName] = functionPointer
   end if
   m._observableFunctionPointerCounts[functionName] = m._observableFunctionPointerCounts[functionName] +1
-  return observable.observeField(field, functionName, true)
+  return observable.observeField(field, functionName, properties)
 end function
 
 ' /**
@@ -76,10 +81,14 @@ end function
 '  * @param {string} fieldName - field on the node to observe
 '  * @param {BaseObservable} observable - observable instance
 '  * @param {string} targetField - field on the observable to update with change values
-'  * @param {boolean} setInitialValue - if true, then the initial value is populated
+'  * @param {assocarray} properties - the properties for the particular binding
+'  *                     - can include
+'  *                     isSettingInitialValue -(default true) if true,
+'  *                          will set the value instantly
+'  *                     transformFunction - function pointer to a value that will modify the value before calling the binding.
 '  * @returns {boolean} true if successful
 '  */
-function OM_bindNodeField(targetNode, fieldName, observable, targetField, setInitialValue = true) as boolean
+function OM_bindNodeField(targetNode, fieldName, observable, targetField, properties = invalid) as boolean
   if not OM_registerObservable(observable)
     logError("could not bind node field - the observable failed to register")
     return false
@@ -89,11 +98,15 @@ function OM_bindNodeField(targetNode, fieldName, observable, targetField, setIni
     return false
   end if
 
+  if properties = invalid
+    properties = OM_createBindingProperties()
+  end if
+
   nodeKey = targetNode.id + "_" + fieldName
   nodeBindings = m._observableNodeBindings[nodeKey]
 
   if nodeBindings = invalid
-    targetNode.observeFieldScoped(fieldName, "OM_BindingCallback")
+    targetNode.observeFieldScoped(fieldName, "OM_bindingCallback")
     nodeBindings = {}
   end if
 
@@ -111,17 +124,22 @@ function OM_bindNodeField(targetNode, fieldName, observable, targetField, setIni
     end if
   end if
 
-  nodeBindings[key] = {"contextId": observable.contextId, "targetField": targetField}
+  nodeBindings[key] = {"contextId": observable.contextId, "targetField": targetField, "transformFunction": properties.transformFunction}
 
   m._observableNodeBindings[nodeKey] = nodeBindings
-  if setInitialValue
+  if properties.isSettingInitialValue = true
+    if properties.transformFunction <> invalid
+      value = properties.transformFunction(targetNode[fieldName])
+    else
+      value = targetNode[fieldName]
+    end if
     if isFunction(observable[targetField])
-      observable[targetField](targetNode[fieldName])
+      observable[targetField](value)
     else
       if not observable.doesExist(targetField)
         logWarn(targetField, "was not present on observable when setting initial value for node key", nodeKey)
       end if
-      observable.setField(targetField, targetNode[fieldName])
+      observable.setField(targetField, value)
     end if
   end if
   return true
@@ -205,7 +223,7 @@ function OM_registerObservable(observable) as boolean
     m._observableNodeBindings = {}
     m._observableContext = createObject("roSGNode", "ContentNode")
     m._observableContext.addField("bindingMessage", "assocarray", true)
-    m._observableContext.observeField("bindingMessage", "OM_ObserverCallback")
+    m._observableContext.observeField("bindingMessage", "OM_observerCallback")
   end if
 
   registeredObservable = m._observables[contextId]
@@ -253,12 +271,16 @@ end function
 '  * @param {string} fieldName - name of field to bind
 '  * @param {node} targetNode - node to set bound field value on
 '  * @param {string} targetField - name of field to set on node
-'  * @param {boolean} setInitialValue - whether value should be set straight away
+'  * @param {assocarray} properties - the properties for the particular binding
+'  *                     - can include
+'  *                     isSettingInitialValue -(default true) if true,
+'  *                          will set the value instantly
+'  *                     transformFunction - function pointer to a value that will modify the value before calling the binding.
 '  * @returns {boolean} true if successful
 '  */
-function OM_bindObservableField(observable, fieldName, targetNode, targetField, setInitialValue = true) as boolean
+function OM_bindObservableField(observable, fieldName, targetNode, targetField, properties = invalid) as boolean
   if OM_registerObservable(observable)
-    return observable.bindField(fieldName, targetNode, targetField, setInitialValue)
+    return observable.bindField(fieldName, targetNode, targetField, properties)
   end if
   return false
 end function
@@ -312,11 +334,15 @@ end function
 '  * @param {string} fieldName - field on observable to bind
 '  * @param {roSGNode} targetNode - node to bind to
 '  * @param {string} targetField - field on target node to bind to
-'  * @param {boolean} setInitialValue, if true, then the binding is invoked with the current value
+'  * @param {assocarray} properties - the properties for the particular binding
+'  *                     - can include
+'  *                     isSettingInitialValue -(default true) if true,
+'  *                          will set the value instantly
+'  *                     transformFunction - function pointer to a value that will modify the value before calling the binding.
 '  */
-function OM_bindFieldTwoWay(observable, fieldName, targetNode, targetField, setInitialValue = true) as void
-  OM_bindObservableField(observable, fieldName, targetNode, targetField, setInitialValue)
-  OM_bindNodeField(targetNode, targetField, observable, fieldName, false)
+function OM_bindFieldTwoWay(observable, fieldName, targetNode, targetField, properties = invalid) as void
+  OM_bindObservableField(observable, fieldName, targetNode, targetField, invalid)
+  OM_bindNodeField(targetNode, targetField, observable, fieldName, {isSettingInitialValue: false})
 end function
 
 ' /**
@@ -345,14 +371,14 @@ end function
 'The following methods are mixed in as conveniences
 
 ' /**
-'  * @member OM_BindingCallback
+'  * @member OM_bindingCallback
 '  * @memberof module:ObservableMixin
 '  *
 '  * @description event handler for processing node events to set the value on
 '  *              the correct observable field or invoke the correct observable function
 '  * @param {event} event
 '  */
-function OM_BindingCallback(event) as void
+function OM_bindingCallback(event) as void
   if m._observableNodeBindings = invalid
     logError("Binding callback invoked when no node bindings were registered")
     return
@@ -370,13 +396,18 @@ function OM_BindingCallback(event) as void
     bindingData = nodeBindings[key]
     observable = m._observables[bindingData.contextId]
     if isAACompatible(observable)
+      if bindingData.transformFunction <> invalid
+        bindingValue = bindingData.transformFunction(value)
+      else
+        bindingValue = value
+      end if
       if isFunction(observable[bindingData.targetField])
-        observable[bindingData.targetField](value)
+        observable[bindingData.targetField](bindingValue)
       else
         if not observable.doesExist(bindingData.targetField)
           logWarn(bindingData.targetField, "was not present on observable when setting value for nodeKey", nodeKey)
         end if
-        observable.setField(bindingData.targetField, value, key)
+        observable.setField(bindingData.targetField, bindingValue, key)
       end if
     else
       logError("could not find observable with context id ", contextId)
@@ -385,14 +416,14 @@ function OM_BindingCallback(event) as void
 end function
 
 ' /**
-'  * @member OM_ObserverCallback
+'  * @member OM_observerCallback
 '  * @memberof module:ObservableMixin
 '  *
 '  * @description event handler for handling observable events, which then get
 '  *              passed onto the correct function
 '  * @param {event} event
 '  */
-function OM_ObserverCallback(event) as void
+function OM_observerCallback(event) as void
   if m._observables = invalid
     logError("Observer callback invoked when no node observables were registered")
     return
@@ -406,7 +437,13 @@ function OM_ObserverCallback(event) as void
     for each functionName in observers
       functionPointer = m._observableFunctionPointers[functionName]
       if functionPointer <> invalid
-        functionPointer(value)
+        properties = observers[functionName]
+        if properties.transformFunction <> invalid
+          bindingValue = properties.transformFunction(value)
+        else
+          bindingValue = value
+        end if
+        functionPointer(bindingValue)
       else
         logError("could not find functoin pointer for function ", functionName)
       end if
@@ -465,4 +502,38 @@ end function
 
 function OM_isRegistered(observable) as boolean
   return OM_isObservable(observable) and observable.doesExist("contextId")
+end function
+
+' /**
+'  * @member OM_createBindingProperties
+'  * @memberof module:ObservableMixin
+'  * @instance
+'  * @description creates properties for using in bindings
+'  * @param {boolean} settingInitialValue - if true, field will be set on binding call
+'  * @param {function} transformFunction - pointer to function to call to modify this value when executing the binding
+'  * @returns {assocarray} binding properties, set with relevant default values
+'  */
+function OM_createBindingProperties(settingInitialValue = true, transformFunction = invalid)
+  if transformFunction <> invalid and not isFunction(transformFunction)
+    logError("transformFunction was not a function! was it in scope?")
+    transformFunction = invalid
+  end if
+  
+  return {
+    "isSettingInitialValue": settingInitialValue
+    "transformFunction": transformFunction
+  }
+end function
+
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+'++ Transform functions
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+function OM_transform_invertBoolean(value)
+  if isBoolean(value)
+    return not value
+  else
+    logError("binding was marked as inverse boolean; but value was not boolean")
+    return false
+  end if
 end function

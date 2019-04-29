@@ -95,14 +95,14 @@ end function
 
 function BO_firePendingObserverNotifications() as void
   for each field in m.pendingObservers
-    m.notify(field, m[field])
+    m.notify(field)
   end for
   m.pendingObservers = {}
 end function
 
 function BO_firePendingBindingNotifications() as void
   for each field in m.pendingBindings
-    m.notifyBinding(field, m[field])
+    m.notifyBinding(field)
   end for
   m.pendingBindings = {}
 end function
@@ -132,8 +132,8 @@ function BO_setField(fieldName, value, originKey = invalid) as boolean
   end if
 
   m[fieldName] = value
-  m.notify(fieldName, value)
-  m.notifyBinding(fieldName, value, originKey)
+  m.notify(fieldName)
+  m.notifyBinding(fieldName, originKey)
   return true
 end function
 
@@ -144,10 +144,14 @@ end function
 '  * @description will callback a function in the owning node's scope when the field changes value
 '  * @param {string} fieldName - field on this observer to observe
 '  * @param {string} functionName - name of function to callback, should be visible to the node's code-behind
-'  * @param {boolean} setInitialValue - if true, will call the function on initial setting
+'  * @param {assocarray} properties - the properties for the particular binding
+'  *                     - can include
+'  *                     isSettingInitialValue -(default true) if true,
+'  *                          will set the value instantly
+'  *                     transformFunction - function pointer to a value that will modify the value before calling the binding.
 '  * @returns {boolean} true if successful
 '  */
-function BO_observeField(fieldName, functionName, setInitialValue = true) as boolean
+function BO_observeField(fieldName, functionName, properties = invalid) as boolean
   'TODO - I think we will want a mixin method for this, that provides a prepackaged node, with a context callback we can invoke
   if not isString(fieldName) or fieldName.trim() = ""
     logError("Tried to observe field with illegal field name")
@@ -159,15 +163,19 @@ function BO_observeField(fieldName, functionName, setInitialValue = true) as boo
     return false
   end if
 
+  if properties = invalid
+    properties = OM_createBindingProperties()
+  end if
+
   observers = m.observers[fieldName]
   if observers = invalid
     observers = {}
   end if
-  observers[functionName] = 1
+  observers[functionName] = properties
 
   m.observers[fieldName] = observers
-  if setInitialValue
-    m.notify(fieldName, m[fieldName])
+  if properties.isSettingInitialValue = true
+    m.notify(fieldName)
   end if
   return true
 end function
@@ -201,12 +209,13 @@ function BO_unobserveAllFields() as void
   m.observers = {}
 end function
 
-function BO_notify(fieldName, value) as void
+function BO_notify(fieldName) as void
   observers = m.observers[fieldName]
   if observers = invalid
     observers = {}
   end if
 
+  value = m[fieldName]
   if isUndefined(value)
     logError("Tried notify about uninitialized value! interpreting as invalid")
     value = invalid
@@ -232,12 +241,20 @@ end function
 '  * @param {string} fieldName - field on this observer to observe
 '  * @param {node} targetNode - the node to notify when the field changes - must have a unique id
 '  * @param {string} targetField - field on node to update with change values
-'  * @param {boolean} setInitialValue - if true, will set the value instantly
+'  * @param {assocarray} properties - the properties for the particular binding
+'  *                     - can include
+'  *                     isSettingInitialValue -(default true) if true,
+'  *                          will set the value instantly
+'  *                     transformFunction - function pointer to a value that will modify the value before calling the binding.
 '  * @returns {boolean} true if successful
 '  */
-function BO_bindField(fieldName, targetNode, targetField, setInitialValue = true) as boolean
+function BO_bindField(fieldName, targetNode, targetField, properties = invalid) as boolean
   if not m.checkValidInputs(fieldName, targetNode, targetField)
     return false
+  end if
+
+  if properties = invalid
+    properties = OM_createBindingProperties()
   end if
 
   if not m.isContextValid
@@ -264,11 +281,11 @@ function BO_bindField(fieldName, targetNode, targetField, setInitialValue = true
     end if
   end if
 
-  bindings[key] = {"node": targetNode, "fieldName": fieldName, "targetField": targetField}
+  bindings[key] = {"node": targetNode, "fieldName": fieldName, "targetField": targetField, "transformFunction": properties.transformFunction}
   m.bindings[fieldName] = bindings
 
-  if setInitialValue
-    m.notifyBinding(fieldName, m[fieldName], key)
+  if properties.isSettingInitialValue = true
+    m.notifyBinding(fieldName, key)
   end if
 
   return true
@@ -282,7 +299,6 @@ end function
 '  * @param {string} fieldName - field on this observer to observe
 '  * @param {node} targetNode - the node to notify when the field changes
 '  * @param {string} targetField - field on node to update with change values
-'  * @param {boolean} setInitialValue - if true, will set the value instantly
 '  * @returns {boolean} true if successful
 '  */
 function BO_unbindField(fieldName, targetNode, targetField) as boolean
@@ -319,23 +335,32 @@ end function
 '  * @instance
 '  * @description Will notify observers of fieldName, of it's value
 '  * @param {string} fieldName - field to update
-'  * @param {any} value - field to update
 '  * @param {string} specificKey - if present, will specify a particular binding key
-'  * @param {string} excludeKey - if present, will not update this node field - to stop cyclical bindings 
+'  * @param {string} excludeKey - if present, will not update this node field - to stop cyclical bindings
 '  */
-function BO_notifyBinding(fieldName, value, specificKey = invalid, excludeKey = invalid) as boolean
+function BO_notifyBinding(fieldName, specificKey = invalid, excludeKey = invalid) as boolean
   bindings = m.bindings[fieldName]
   if bindings = invalid
     ' logVerbose("No bindings for field ", fieldName)
     return false
   end if
-
+  value = m[fieldName]
+  value = m[fieldName]
+  if isUndefined(value)
+    logError("Tried notify about uninitialized value! interpreting as invalid")
+    value = invalid
+  end if
   if m.isBindingNotificationEnabled
     for each key in bindings
       if (specificKey = invalid or specificKey = key) and (excludeKey = invalid or excludeKey <> key)
         binding = bindings[key]
         if type(binding.node) = "roSGNode"
-          binding.node.setField(binding.targetField, value)
+          if binding.transformFunction <> invalid
+            bindingValue = binding.transformFunction(value)
+          else
+            bindingValue = value
+          end if
+          binding.node.setField(binding.targetField, bindingValue)
         else
           logError("Skipping illegal node for field binding: " + key)
         end if

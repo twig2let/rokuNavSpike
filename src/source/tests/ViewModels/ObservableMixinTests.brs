@@ -2,6 +2,7 @@
 
 '@BeforeEach
 function OMT_BeforeEach()
+  m.defaultBindableProperties = OM_createBindingProperties()
   m.node.delete("_observerCallbackValue1")
   m.node.delete("_observerCallbackValue2")
   OM_cleanup()
@@ -20,7 +21,7 @@ function OMT_cleanup()
   m.node._observableNodeBindings = {}
   m.node._observableContext = createObject("roSGNode", "ContentNode")
   m.node._observableContext.addField("bindingMessage", "assocarray", true)
-  m.node._observableContext.observeFieldScoped("bindingMessage", "OM_BindingCallback")
+  m.node._observableContext.observeFieldScoped("bindingMessage", "OM_bindingCallback")
   OM_cleanup()
   m.assertInvalid(m.node._observableContextId)
   m.assertInvalid(m.node._observables)
@@ -222,7 +223,7 @@ function OMT_isRegistered_registered()
 end function
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-'@It tests OM_ObserverCallback
+'@It tests OM_observerCallback
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 '@Test not registered
@@ -230,7 +231,7 @@ function OMT_ObserverCallback_notRegistered()
   event = {}
   m.expectNone(event, "getData")
 
-  OM_ObserverCallback(event)
+  OM_observerCallback(event)
 
   m.assertInvalid(m.node._observerCallbackValue1)
   m.assertInvalid(m.node._observerCallbackValue2)
@@ -243,19 +244,42 @@ function OMT_ObserverCallback_registered()
   o1.id = "o1"
   o1.f1 = true
   m.assertTrue(OM_registerObservable(o1))
-  OM_ObserveField(o1, "f1", OMT_callbackTarget1)
+  OM_observeField(o1, "f1", OMT_callbackTarget1)
 
-  'we need to manually call the OM_ObserverCallback - this test is not in a node scope, so
+  'we need to manually call the OM_observerCallback - this test is not in a node scope, so
   'the observer callback will not fire
   event = {}
   m.expectOnce(event, "getData", invalid, {"contextId":o1.contextId, "fieldName":"f1"})
-  OM_ObserverCallback(event)
+  OM_observerCallback(event)
+  m.assertTrue(m.node._observerCallbackValue1)
+  m.assertInvalid(m.node._observerCallbackValue2)
+end function
+
+'@Test observer with inverse bool result
+function OMT_ObserverCallback_inverseBoolean()
+  properties = OM_createBindingProperties(true, OM_transform_invertBoolean)
+  o1 = BaseObservable()
+  o1.id = "o1"
+  o1.f1 = true
+  m.assertTrue(OM_registerObservable(o1))
+  OM_observeField(o1, "f1", OMT_callbackTarget1, properties)
+
+  'we need to manually call the OM_observerCallback - this test is not in a node scope, so
+  'the observer callback will not fire
+  event = {}
+  m.expect(event, "getData", 2, invalid, {"contextId":o1.contextId, "fieldName":"f1"})
+  OM_observerCallback(event)
+  m.assertFalse(m.node._observerCallbackValue1)
+  m.assertInvalid(m.node._observerCallbackValue2)
+
+  o1.f1 = false
+  OM_observerCallback(event)
   m.assertTrue(m.node._observerCallbackValue1)
   m.assertInvalid(m.node._observerCallbackValue2)
 end function
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-'@It tests OM_BindingCallback
+'@It tests OM_bindingCallback
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 '@Test not registered
@@ -267,20 +291,58 @@ function OMT_BindingCallback_notRegistered()
   m.assertInvalid(m.node._observerCallbackValue2)
 end function
 
-function OMT_BindingCallback_registered()
+'@Test valid
+function OMT_BindingCallback_valid()
   o1 = BaseObservable()
   o1.id = "o1"
-  o1.f1 = true
-  m.assertTrue(OM_registerObservable(o1))
-  OM_ObserveField(o1, "f1", OMT_callbackTarget1)
+  o1.f1 = false
+  n1 = createObject("roSGNode", "ContentNode")
+  n1.id = "n1"
+  n1.live = true
 
-  'we need to manually call the OM_ObserverCallback - this test is not in a node scope, so
+  m.assertTrue(OM_registerObservable(o1))
+  properties = OM_createBindingProperties(false)
+  OM_bindNodeField(n1, "live", o1, "f1", properties)
+
+  'we need to manually call the OM_observerCallback - this test is not in a node scope, so
   'the observer callback will not fire
   event = {}
-  m.expectOnce(event, "getData", invalid, {"contextId":o1.contextId, "fieldName":"f1"})
-  OM_BindingCallback(event)
-  m.assertTrue(m.node._observerCallbackValue1)
-  m.assertInvalid(m.node._observerCallbackValue2)
+  m.expectOnce(event, "getNode", invalid, "n1")
+  m.expectOnce(event, "getData", invalid, true)
+  m.expectOnce(event, "getField", invalid, "live")
+  m.assertFalse(o1.f1)
+  OM_bindingCallback(event)
+  m.assertTrue(o1.f1)
+end function
+
+'@Test inverse transform function
+function OMT_BindingCallback_transformFunction_invert()
+  o1 = BaseObservable()
+  o1.id = "o1"
+  o1.f1 = false
+  n1 = createObject("roSGNode", "ContentNode")
+  n1.id = "n1"
+  n1.live = true
+
+  m.assertTrue(OM_registerObservable(o1))
+  properties = OM_createBindingProperties(false, OM_transform_invertBoolean)
+  OM_bindNodeField(n1, "live", o1, "f1", properties)
+
+  'we need to manually call the OM_observerCallback - this test is not in a node scope, so
+  'the observer callback will not fire
+  event = {}
+  m.expect(event, "getNode", 2, invalid, "n1")
+  m.expectOnce(event, "getData", invalid, true)
+  m.expect(event, "getField", 2,  invalid, "live")
+  m.assertFalse(o1.f1)
+
+  OM_bindingCallback(event)
+  m.assertFalse(o1.f1)
+
+  n1.live = false
+  m.expectOnce(event, "getData", invalid, false)
+  OM_bindingCallback(event)
+  m.assertTrue(o1.f1)
 end function
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -292,7 +354,7 @@ function OMT_observeField_unregistered()
   o1 = BaseObservable()
   o1.id = "o1"
   m.expectNone(o1, "unobserveField")
-  
+
   m.assertFalse(OM_observeField(invalid, "fieldName", OMT_callbackTarget1))
 end function
 
@@ -316,8 +378,8 @@ end function
 function OMT_observeField_valid()
   o1 = BaseObservable()
   o1.id = "o1"
-  m.expectOnce(o1, "observeField", ["fieldName", "omt_callbacktarget1", true], true)
-  
+  m.expectOnce(o1, "observeField", ["fieldName", "omt_callbacktarget1", invalid], true)
+
   m.assertTrue(OM_observeField(o1, "fieldName", OMT_callbackTarget1))
 
   m.assertEqual(m.node._observableFunctionPointerCounts["OMT_callbackTarget1"], 1)
@@ -328,10 +390,10 @@ end function
 function OMT_observeField_valid_sameFunctionMultipleFields()
   o1 = BaseObservable()
   o1.id = "o1"
-  m.expectOnce(o1, "observeField", ["f1", "omt_callbacktarget1", true], true)
-  m.expectOnce(o1, "observeField", ["f2", "omt_callbacktarget1", true], true)
-  m.expectOnce(o1, "observeField", ["f3", "omt_callbacktarget1", true], true)
-  
+  m.expectOnce(o1, "observeField", ["f1", "omt_callbacktarget1", invalid], true)
+  m.expectOnce(o1, "observeField", ["f2", "omt_callbacktarget1", invalid], true)
+  m.expectOnce(o1, "observeField", ["f3", "omt_callbacktarget1", invalid], true)
+
   m.assertTrue(OM_observeField(o1, "f1", OMT_callbackTarget1))
   m.assertTrue(OM_observeField(o1, "f2", OMT_callbackTarget1))
   m.assertTrue(OM_observeField(o1, "f3", OMT_callbackTarget1))
@@ -349,7 +411,7 @@ function OMT_unobserveField_unregistered()
   o1 = BaseObservable()
   o1.id = "o1"
   m.expectNone(o1, "unobserveField")
-  
+
   m.assertFalse(OM_unobserveField(o1, "fieldName", OMT_callbackTarget1))
 end function
 
@@ -374,12 +436,12 @@ function OMT_unobserveField_valid()
   o1 = BaseObservable()
   o1.id = "o1"
   m.expectOnce(o1, "unobserveField", ["fieldName", "omt_callbacktarget1"], true)
-  
+
   m.assertTrue(OM_observeField(o1, "fieldName", OMT_callbackTarget1))
 
   m.assertEqual(m.node._observableFunctionPointerCounts["OMT_callbackTarget1"], 1)
   m.assertEqual(m.node._observableFunctionPointers["OMT_callbackTarget1"], OMT_callbackTarget1)
-  
+
   m.assertTrue(OM_unobserveField(o1, "fieldName", OMT_callbackTarget1))
 
   m.assertInvalid(m.node._observableFunctionPointerCounts["OMT_callbackTarget1"])
@@ -393,14 +455,14 @@ function OMT_unobserveField_valid_sameFunctionMultipleFields()
   m.expectOnce(o1, "unobserveField", ["f1", "omt_callbacktarget1"], true)
   m.expectOnce(o1, "unobserveField", ["f2", "omt_callbacktarget1"], true)
   m.expectOnce(o1, "unobserveField", ["f3", "omt_callbacktarget1"], true)
-  
+
   m.assertTrue(OM_observeField(o1, "f1", OMT_callbackTarget1))
   m.assertTrue(OM_observeField(o1, "f2", OMT_callbackTarget1))
   m.assertTrue(OM_observeField(o1, "f3", OMT_callbackTarget1))
 
   m.assertEqual(m.node._observableFunctionPointerCounts["OMT_callbackTarget1"], 3)
   m.assertEqual(m.node._observableFunctionPointers["OMT_callbackTarget1"], OMT_callbackTarget1)
-  
+
   m.assertTrue(OM_unobserveField(o1, "f1", OMT_callbackTarget1))
   m.assertEqual(m.node._observableFunctionPointerCounts["OMT_callbackTarget1"], 2)
   m.assertEqual(m.node._observableFunctionPointers["OMT_callbackTarget1"], OMT_callbackTarget1)
@@ -421,7 +483,7 @@ function OMT_unobserveField_valid_multiFunctionMultipleFields()
   m.expectOnce(o1, "unobserveField", ["f1", "omt_callbacktarget1"], true)
   m.expectOnce(o1, "unobserveField", ["f2", "omt_callbacktarget1"], true)
   m.expectOnce(o1, "unobserveField", ["f3", "omt_callbacktarget2"], true)
-  
+
   m.assertTrue(OM_observeField(o1, "f1", OMT_callbackTarget1))
   m.assertTrue(OM_observeField(o1, "f2", OMT_callbackTarget1))
   m.assertTrue(OM_observeField(o1, "f3", OMT_callbackTarget2))
@@ -430,7 +492,7 @@ function OMT_unobserveField_valid_multiFunctionMultipleFields()
   m.assertEqual(m.node._observableFunctionPointerCounts["OMT_callbackTarget2"], 1)
   m.assertEqual(m.node._observableFunctionPointers["OMT_callbackTarget1"], OMT_callbackTarget1)
   m.assertEqual(m.node._observableFunctionPointers["OMT_callbackTarget2"], OMT_callbackTarget2)
-  
+
   m.assertTrue(OM_unobserveField(o1, "f1", OMT_callbackTarget1))
   m.assertEqual(m.node._observableFunctionPointerCounts["OMT_callbackTarget1"], 1)
   m.assertEqual(m.node._observableFunctionPointerCounts["OMT_callbackTarget2"], 1)
@@ -459,9 +521,9 @@ end function
 function OMT_bindObservableField_validObservable()
   o1 = BaseObservable()
   o1.id = "o1"
-  n1 = createObject("roSGNode", "ContentNode") 
+  n1 = createObject("roSGNode", "ContentNode")
   n1.id = "n1"
-  m.expectOnce(o1, "bindField", ["fieldName", n1, "targetField", true], true)
+  m.expectOnce(o1, "bindField", ["fieldName", n1, "targetField", invalid], true)
 
   m.assertTrue(OM_bindObservableField(o1, "fieldName", n1, "targetField"))
 end function
@@ -479,7 +541,7 @@ end function
 function OMT_unbindObservableField_validObservable()
   o1 = BaseObservable()
   o1.id = "o1"
-  n1 = createObject("roSGNode", "ContentNode") 
+  n1 = createObject("roSGNode", "ContentNode")
   n1.id = "n1"
   m.expectOnce(o1, "unbindField", ["fieldName", n1, "targetField"], true)
 

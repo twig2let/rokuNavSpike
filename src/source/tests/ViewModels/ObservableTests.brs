@@ -23,7 +23,7 @@ function OT_ObserverCallback_noObserver()
   event = {}
   m.expectNone(event, "getData")
 
-  OM_ObserverCallback(event)
+  OM_observerCallback(event)
 
   m.assertInvalid(m.node._observerCallbackValue1)
   m.assertInvalid(m.node._observerCallbackValue2)
@@ -34,7 +34,7 @@ function OT_ObserverCallback_registered()
   o1 = BaseObservable()
   o1.id = "o1"
 
-  OM_ObserveField(o1, "f1", OT_callbackTarget1)
+  OM_observeField(o1, "f1", OT_callbackTarget1)
 
   o1.setField("f1", true)
 
@@ -52,8 +52,8 @@ function OT_ObserverCallback_multipleFields()
   m.assertInvalid(m.node._observerCallbackValue1)
   m.assertInvalid(m.node._observerCallbackValue2)
 
-  OM_ObserveField(o1, "f1", OT_callbackTarget1)
-  OM_ObserveField(o1, "f2", OT_callbackTarget2)
+  OM_observeField(o1, "f1", OT_callbackTarget1)
+  OM_observeField(o1, "f2", OT_callbackTarget2)
 
   m.assertFalse(m.node._observerCallbackValue1, "observeField should set value by default")
   m.assertFalse(m.node._observerCallbackValue2, "observeField should set value by default")
@@ -80,8 +80,24 @@ function OT_ObserverCallback_multipleFields()
   m.assertFalse(m.node._observerCallbackValue2)
 end function
 
+'@Test observer inverse boolean
+function OT_ObserverCallback_inverseBoolean()
+  properties = OM_createBindingProperties(true, OM_transform_invertBoolean)
+  o1 = BaseObservable()
+  o1.id = "o1"
+  o1.f1 = false
+
+  OM_observeField(o1, "f1", OT_callbackTarget1, properties)
+
+  m.assertTrue(m.node._observerCallbackValue1)
+  o1.setField("f1", true)
+
+  m.assertFalse(m.node._observerCallbackValue1)
+  m.assertInvalid(m.node._observerCallbackValue2)
+end function
+
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-'@It tests OM_BindingCallback
+'@It tests OM_bindingCallback
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 '@Test not registered
@@ -89,7 +105,7 @@ function OT_BindingCallback_notRegistered()
   event = {}
   m.expectNone(event, "getData")
 
-  OM_BindingCallback(event)
+  OM_bindingCallback(event)
 end function
 
 '@Test no bound observable fields
@@ -103,7 +119,7 @@ function OT_BindingCallback_noBoundFields_registerd()
   m.expectOnce(event, "getNode", invalid, "n1")
   m.expectOnce(event, "getField", invalid, "title")
 
-  OM_BindingCallback(event)
+  OM_bindingCallback(event)
 end function
 
 '@Test one field

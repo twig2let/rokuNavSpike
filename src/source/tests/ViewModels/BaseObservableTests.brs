@@ -2,6 +2,7 @@
 
 '@BeforeEach
 function BOT_BeforeEach()
+  m.defaultBindableProperties = OM_createBindingProperties()
   m.observable = BaseObservable()
 end function
 
@@ -37,8 +38,8 @@ end function
 '@Params["testField2", {}]
 '@Params["testField2", {"someField":"#value"}]
 function BOT_setField(fieldName, value)
-  m.expectOnce(m.observable, "notify", [fieldName, value])
-  m.expectOnce(m.observable, "notifyBinding", [fieldName, value])
+  m.expectOnce(m.observable, "notify", [fieldName])
+  m.expectOnce(m.observable, "notifyBinding", [fieldName])
 
   m.observable.setField(fieldName, value)
 
@@ -47,12 +48,12 @@ end function
 
 '@Test set multiple times
 function BOT_setField_multiple()
-  m.expectOnce(m.observable, "notify", ["_fieldName", 1])
-  m.expectOnce(m.observable, "notifyBinding", ["_fieldName", 1])
-  m.expectOnce(m.observable, "notify", ["_fieldName", 2])
-  m.expectOnce(m.observable, "notifyBinding", ["_fieldName", 2])
-  m.expectOnce(m.observable, "notify", ["_fieldName", 3])
-  m.expectOnce(m.observable, "notifyBinding", ["_fieldName", 3])
+  m.expectOnce(m.observable, "notify", ["_fieldName"])
+  m.expectOnce(m.observable, "notifyBinding", ["_fieldName"])
+  m.expectOnce(m.observable, "notify", ["_fieldName"])
+  m.expectOnce(m.observable, "notifyBinding", ["_fieldName"])
+  m.expectOnce(m.observable, "notify", ["_fieldName"])
+  m.expectOnce(m.observable, "notifyBinding", ["_fieldName"])
 
   m.observable.setField("_fieldName", 1)
   m.observable.setField("_fieldName", 2)
@@ -63,8 +64,8 @@ end function
 
 '@Test uninitialized value
 function BOT_setField_illegalFieldName()
-  m.expectOnce(m.observable, "notify", ["testValue", invalid])
-  m.expectOnce(m.observable, "notifyBinding", ["testValue", invalid])
+  m.expectOnce(m.observable, "notify", ["testValue"])
+  m.expectOnce(m.observable, "notifyBinding", ["testValue"])
 
   m.observable.setField("testValue", someUndefinedVar)
 
@@ -75,8 +76,8 @@ end function
 function BOT_setField_node()
   value = createObject("roSGNode", "ContentNode")
 
-  m.expectOnce(m.observable, "notify", ["testValue", value])
-  m.expectOnce(m.observable, "notifyBinding", ["testValue", value])
+  m.expectOnce(m.observable, "notify", ["testValue"])
+  m.expectOnce(m.observable, "notifyBinding", ["testValue"])
 
   m.observable.setField("testValue", value)
 
@@ -194,7 +195,7 @@ end function
 '@Params["fieldA", "a"]
 '@Params["fieldB", "b"]
 function BOT_firePendingObserverNotifications_one(field1Name, value1)
-  m.expectOnce(m.observable, "notify", [field1Name, value1])
+  m.expectOnce(m.observable, "notify", [field1Name])
   m.observable[field1Name] = value1
   m.observable.pendingObservers = {}
   m.observable.pendingObservers[field1Name] = 1
@@ -207,9 +208,9 @@ end function
 '@Params["fieldA", "a", "fieldB", "b", "fieldC", "c"]
 function BOT_firePendingObserverNotifications_multiple(field1Name, value1, field2Name, value2, field3Name, value3)
   'note these come out in a very specific order
-  m.expectOnce(m.observable, "notify", [field3Name, value3])
-  m.expectOnce(m.observable, "notify", [field1Name, value1])
-  m.expectOnce(m.observable, "notify", [field2Name, value2])
+  m.expectOnce(m.observable, "notify", [field3Name])
+  m.expectOnce(m.observable, "notify", [field1Name])
+  m.expectOnce(m.observable, "notify", [field2Name])
   m.observable[field1Name] = value1
   m.observable[field2Name] = value2
   m.observable[field3Name] = value3
@@ -239,7 +240,7 @@ end function
 '@Params["fieldA", "a"]
 '@Params["fieldB", "b"]
 function BOT_firePendingBindingNotifications_one(field1Name, value1)
-  m.expectOnce(m.observable, "notifyBinding", [field1Name, value1])
+  m.expectOnce(m.observable, "notifyBinding", [field1Name])
   m.observable[field1Name] = value1
   m.observable.pendingBindings = {}
   m.observable.pendingBindings[field1Name] = 1
@@ -252,9 +253,9 @@ end function
 '@Params["fieldA", "a", "fieldB", "b", "fieldC", "c"]
 function BOT_firePendingBindingNotifications_multiple(field1Name, value1, field2Name, value2, field3Name, value3)
   'note these come out in a very specific order
-  m.expectOnce(m.observable, "notifyBinding", [field3Name, value3])
-  m.expectOnce(m.observable, "notifyBinding", [field1Name, value1])
-  m.expectOnce(m.observable, "notifyBinding", [field2Name, value2])
+  m.expectOnce(m.observable, "notifyBinding", [field3Name])
+  m.expectOnce(m.observable, "notifyBinding", [field1Name])
+  m.expectOnce(m.observable, "notifyBinding", [field2Name])
   m.observable[field1Name] = value1
   m.observable[field2Name] = value2
   m.observable[field3Name] = value3
@@ -289,40 +290,42 @@ end function
 
 '@Test valud default initial value
 '@Params["field1", "function1", "#value1"]
-function BOT_observeField_valid_defaultSetInitialValue(fieldName, functionName, value)
-  m.expectOnce(m.observable, "notify", [fieldName, value])
+function BOT_observeField_valid_defaultisSettingInitialValue(fieldName, functionName, value)
+  m.expectOnce(m.observable, "notify", [fieldName])
   m.observable[fieldName] = value
   m.observable.observeField(fieldName, functionName)
 
   m.assertArrayCount(m.observable.observers, 1)
-  m.assertEqual(m.observable.observers[fieldName][functionName], 1)
+  m.assertEqual(m.observable.observers[fieldName][functionName], m.defaultBindableProperties)
 end function
 
 '@Test valid
 '@Params["field1", "function1", "#value1", true, 1]
 '@Params["field1", "function1", "#value1", false, 0]
-function BOT_observeField_valid(fieldName, functionName, value, setInitialValue, expectedNotifyCount)
-  m.expect(m.observable, "notify", expectedNotifyCount, [fieldName, value])
+function BOT_observeField_valid(fieldName, functionName, value, isSettingInitialValue, expectedNotifyCount)
+  properties = OM_createBindingProperties(isSettingInitialValue)
+  m.expect(m.observable, "notify", expectedNotifyCount, [fieldName])
   m.observable[fieldName] = value
-  m.observable.observeField(fieldName, functionName, setInitialValue)
+  m.observable.observeField(fieldName, functionName, properties)
 
   m.assertArrayCount(m.observable.observers, 1)
-  m.assertEqual(m.observable.observers[fieldName][functionName], 1)
+  m.assertAAHasKey(m.observable.observers[fieldName], functionName)
+
 end function
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 '@It tests unobserveField
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-'@Test valid - one observer one field
+'@Test valid - one observer one field - no initial set value
 '@Params["field1", "function1", "#value1"]
 '@Params["field1", "function1", "#value1"]
 function BOT_unobserveField_valid_oneObserver_oneField(fieldName, functionName, value)
   m.observable[fieldName] = value
-  m.observable.observeField(fieldName, functionName, false)
+  m.observable.observeField(fieldName, functionName, {isSettingInitialValue:false})
 
   m.assertArrayCount(m.observable.observers, 1)
-  m.assertEqual(m.observable.observers[fieldName][functionName], 1)
+  m.assertAAHasKey(m.observable.observers[fieldName], functionName)
 
   m.observable.unobserveField(fieldName, functionName)
 
@@ -333,18 +336,18 @@ end function
 function BOT_unobserveField_valid_multipleObservers_oneField()
   m.observable["field1"] = 1
   m.observable["field2"] = 2
-  m.observable.observeField("field1", "func1", false)
-  m.observable.observeField("field1", "func2", false)
+  m.observable.observeField("field1", "func1", {isSettingInitialValue:false})
+  m.observable.observeField("field1", "func2", {isSettingInitialValue:false})
 
   m.assertArrayCount(m.observable.observers, 1)
-  m.assertEqual(m.observable.observers["field1"]["func1"], 1)
-  m.assertEqual(m.observable.observers["field1"]["func2"], 1)
+  m.assertAAHasKey(m.observable.observers["field1"], "func1")
+  m.assertAAHasKey(m.observable.observers["field1"], "func2")
 
   m.observable.unobserveField("field1", "func1")
 
   m.assertArrayCount(m.observable.observers, 1)
-  m.assertInvalid(m.observable.observers["field1"]["func1"])
-  m.assertEqual(m.observable.observers["field1"]["func2"], 1)
+  m.assertAANotHasKey(m.observable.observers["field1"], "func1")
+  m.assertAAHasKey(m.observable.observers["field1"], "func2")
 
   m.observable.unobserveField("field1", "func2")
   m.assertEmpty(m.observable.observers)
@@ -354,27 +357,28 @@ end function
 function BOT_unobserveField_valid_multipleObservers_multipleFields()
   m.observable["field1"] = 1
   m.observable["field2"] = 2
-  m.observable.observeField("field1", "func1", false)
-  m.observable.observeField("field1", "func2", false)
-  m.observable.observeField("field2", "func1", false)
+  m.observable.observeField("field1", "func1", {isSettingInitialValue:false})
+  m.observable.observeField("field1", "func2", {isSettingInitialValue:false})
+  m.observable.observeField("field2", "func1", {isSettingInitialValue:false})
 
   m.assertArrayCount(m.observable.observers, 2)
-  m.assertEqual(m.observable.observers["field2"]["func1"], 1)
-  m.assertEqual(m.observable.observers["field1"]["func1"], 1)
-  m.assertEqual(m.observable.observers["field1"]["func2"], 1)
+
+  m.assertAAHasKey(m.observable.observers["field1"], "func1")
+  m.assertAAHasKey(m.observable.observers["field1"], "func2")
+  m.assertAAHasKey(m.observable.observers["field2"], "func1")
 
   m.observable.unobserveField("field1", "func1")
 
   m.assertArrayCount(m.observable.observers, 2)
-  m.assertEqual(m.observable.observers["field2"]["func1"], 1)
-  m.assertInvalid(m.observable.observers["field1"]["func1"])
-  m.assertEqual(m.observable.observers["field1"]["func2"], 1)
+  m.assertAANotHasKey(m.observable.observers["field1"], "func1")
+  m.assertAAHasKey(m.observable.observers["field1"], "func2")
+  m.assertAAHasKey(m.observable.observers["field2"], "func1")
 
   m.observable.unobserveField("field1", "func2")
 
   m.assertArrayCount(m.observable.observers, 1)
-  m.assertEqual(m.observable.observers["field2"]["func1"], 1)
-
+  m.assertAANotHasKey(m.observable.observers, "field1")
+  m.assertAAHasKey(m.observable.observers["field2"], "func1")
 
   m.observable.unobserveField("field2", "func1")
   m.assertEmpty(m.observable.observers)
@@ -454,10 +458,10 @@ end function
 '@Params["field1", "function1", "#value1"]
 function BOT_unobserveAllFields_valid_oneObserver_oneField(fieldName, functionName, value)
   m.observable[fieldName] = value
-  m.observable.observeField(fieldName, functionName, false)
+  m.observable.observeField(fieldName, functionName, {isSettingInitialValue:false})
   m.assertArrayCount(m.observable.observers, 1)
 
-  m.assertEqual(m.observable.observers[fieldName][functionName], 1)
+  m.assertAAHasKey(m.observable.observers[fieldName], functionName)
 
   m.observable.unobserveAllFields()
 
@@ -472,12 +476,12 @@ end function
 function BOT_notify_oneObserver_oneField_notificationsEnabled_noContext()
   m.observable["_fieldName"] = "#value"
   m.observable.isBindingNotificationEnabled = true
-  m.observable.observeField("_fieldName", "testFunction", false)
+  m.observable.observeField("_fieldName", "testFunction", {isSettingInitialValue:false})
 
   m.assertArrayCount(m.observable.observers, 1)
-  m.assertEqual(m.observable.observers._fieldName["testFunction"], 1)
+  m.assertAAHasKey(m.observable.observers._fieldName, "testFunction")
 
-  m.observable.notify("_fieldName", "#value")
+  m.observable.notify.("_fieldName")
 
   m.assertEqual(m.observable.pendingObservers._fieldName, 1)
 end function
@@ -488,12 +492,12 @@ function BOT_notify_oneObserver_oneField_notificationsDisabled_context()
   contextNode = BOT_createContextNode()
   m.observable.setContext("1", contextNode)
   m.observable.isBindingNotificationEnabled = false
-  m.observable.observeField("_fieldName", "testFunction", false)
+  m.observable.observeField("_fieldName", "testFunction", {isSettingInitialValue:false})
 
   m.assertArrayCount(m.observable.observers, 1)
-  m.assertEqual(m.observable.observers._fieldName["testFunction"], 1)
+  m.assertAAHasKey(m.observable.observers._fieldName, "testFunction")
 
-  m.observable.notify("_fieldName", "#value")
+  m.observable.notify("_fieldName")
 
   m.assertEqual(m.observable.pendingObservers._fieldName, 1)
 end function
@@ -504,13 +508,12 @@ function BOT_notify_oneObserver_oneField_notificationsEnabled_context()
   contextNode = BOT_createContextNode()
   m.observable.setContext("1", contextNode)
   m.observable.isBindingNotificationEnabled = true
-  m.observable.observeField("_fieldName", "testFunction", false)
+  m.observable.observeField("_fieldName", "testFunction", {isSettingInitialValue:false})
 
   m.assertArrayCount(m.observable.observers, 1)
-  m.assertEqual(m.observable.observers._fieldName["testFunction"], 1)
+  m.assertAAHasKey(m.observable.observers._fieldName, "testFunction")
 
-  m.observable.notify("_fieldName", "#value")
-
+  m.observable.notify("_fieldName")
   m.assertEqual(contextNode.bindingMessage.contextId, "1")
   m.assertEqual(contextNode.bindingMessage.fieldName, "_fieldName")
   m.assertArrayCount(m.observable.pendingObservers, 0)
@@ -523,12 +526,12 @@ function BOT_notify_oneObserver_twoFields_notificationsEnabled_context()
   contextNode = BOT_createContextNode()
   m.observable.setContext("1", contextNode)
   m.observable.isBindingNotificationEnabled = true
-  m.observable.observeField("_fieldName", "testFunction", false)
+  m.observable.observeField("_fieldName", "testFunction", {isSettingInitialValue:false})
 
   m.assertArrayCount(m.observable.observers, 1)
-  m.assertEqual(m.observable.observers._fieldName["testFunction"], 1)
+  m.assertAAHasKey(m.observable.observers._fieldName, "testFunction")
 
-  m.observable.notify("_fieldName", "#value")
+  m.observable.notify("_fieldName")
 
   m.assertEqual(contextNode.bindingMessage.contextId, "1")
   m.assertEqual(contextNode.bindingMessage.fieldName, "_fieldName")
@@ -542,13 +545,13 @@ function BOT_notify_twoObservers_twoFields_notificationsEnabled_context()
   contextNode = BOT_createContextNode()
   m.observable.setContext("1", contextNode)
   m.observable.isBindingNotificationEnabled = true
-  m.observable.observeField("_fieldName", "testFunction", false)
-  m.observable.observeField("_fieldName", "testFunction2", false)
+  m.observable.observeField("_fieldName", "testFunction", {isSettingInitialValue:false})
+  m.observable.observeField("_fieldName", "testFunction2", {isSettingInitialValue:false})
 
   m.assertArrayCount(m.observable.observers, 1)
-  m.assertEqual(m.observable.observers._fieldName["testFunction"], 1)
+  m.assertAAHasKey(m.observable.observers._fieldName, "testFunction")
 
-  m.observable.notify("_fieldName", "#value")
+  m.observable.notify("_fieldName")
 
   m.assertEqual(contextNode.bindingMessage.contextId, "1")
   m.assertEqual(contextNode.bindingMessage.fieldName, "_fieldName")
@@ -562,14 +565,14 @@ function BOT_notify_twoObservers_twoFields_notificationsEnabled_context_otherFie
   contextNode = BOT_createContextNode()
   m.observable.setContext("1", contextNode)
   m.observable.isBindingNotificationEnabled = true
-  m.observable.observeField("_fieldName", "testFunction", false)
-  m.observable.observeField("_fieldName", "testFunction2", false)
+  m.observable.observeField("_fieldName", "testFunction", {isSettingInitialValue:false})
+  m.observable.observeField("_fieldName", "testFunction2", {isSettingInitialValue:false})
 
   m.assertArrayCount(m.observable.observers, 1)
-  m.assertEqual(m.observable.observers._fieldName["testFunction"], 1)
+  m.assertAAHasKey(m.observable.observers._fieldName, "testFunction")
 
-  m.observable.notify("_fieldName", "#value")
-  m.observable.notify("_fieldName2", "#value")
+  m.observable.notify("_fieldName")
+  m.observable.notify("_fieldName2")
 
   m.assertEqual(contextNode.bindingMessage.contextId, "1")
   m.assertEqual(contextNode.bindingMessage.fieldName, "_fieldName2")
@@ -608,7 +611,7 @@ function BOT_bindField_valid(fieldName, targetNode, targetField)
   m.observable[fieldName] = "value"
   targetNode.id ="nodeId"
 
-  m.assertTrue(m.observable.bindField(fieldName, targetNode, targetField, false))
+  m.assertTrue(m.observable.bindField(fieldName, targetNode, targetField, {isSettingInitialValue:false}))
 
   bindings = m.observable.bindings[fieldName]
   m.assertAAHasKey(bindings, "1_nodeId__fieldName__targetField")
@@ -632,8 +635,8 @@ function BOT_bindField_valid_2fields()
   n2 = createObject("roSGNode", "ContentNode")
   n2.id ="n2"
 
-  m.assertTrue(m.observable.bindField("f1", n1, "t1", false))
-  m.assertTrue(m.observable.bindField("f2", n2, "t2", false))
+  m.assertTrue(m.observable.bindField("f1", n1, "t1", {isSettingInitialValue:false}))
+  m.assertTrue(m.observable.bindField("f2", n2, "t2", {isSettingInitialValue:false}))
 
   bindings = m.observable.bindings["f1"]
   m.assertAAHasKey(bindings, "1_n1_f1_t1")
@@ -666,8 +669,8 @@ function BOT_bindField_valid_1fields_2bindings()
   n2 = createObject("roSGNode", "ContentNode")
   n2.id ="n2"
 
-  m.assertTrue(m.observable.bindField("f2", n1, "t1", false))
-  m.assertTrue(m.observable.bindField("f2", n2, "t2", false))
+  m.assertTrue(m.observable.bindField("f2", n1, "t1", {isSettingInitialValue:false}))
+  m.assertTrue(m.observable.bindField("f2", n2, "t2", {isSettingInitialValue:false}))
 
   m.assertAANotHasKey(m.observable.bindings, "f1")
 
@@ -723,8 +726,8 @@ function BOT_unbindField_valid_1fields_2bindings()
   n2 = createObject("roSGNode", "ContentNode")
   n2.id ="n2"
 
-  m.assertTrue(m.observable.bindField("f2", n1, "t1", false))
-  m.assertTrue(m.observable.bindField("f2", n2, "t2", false))
+  m.assertTrue(m.observable.bindField("f2", n1, "t1", {isSettingInitialValue:false}))
+  m.assertTrue(m.observable.bindField("f2", n2, "t2", {isSettingInitialValue:false}))
 
   m.assertAANotHasKey(m.observable.bindings, "f1")
 
@@ -773,7 +776,7 @@ end function
 
 '@Test no matching field
 function BOT_notifyBinding_noField()
-  m.assertFalse(m.observable.notifyBinding("noField", "value"))
+  m.assertFalse(m.observable.notifyBinding("noField"))
 end function
 
 '@Test not enabled
@@ -785,9 +788,9 @@ function BOT_notifyBinding_notEnabled()
   n1.id ="n1"
   m.observable.isBindingNotificationEnabled = false
   m.assertEmpty(m.observable.pendingBindings)
-  m.assertTrue(m.observable.bindField("f1", n1, "t1", false))
+  m.assertTrue(m.observable.bindField("f1", n1, "t1", {isSettingInitialValue:false}))
 
-  m.assertTrue(m.observable.notifyBinding("f1", "v1"))
+  m.assertTrue(m.observable.notifyBinding("f1"))
   m.assertNotEmpty(m.observable.pendingBindings)
 end function
 
@@ -800,9 +803,9 @@ function BOT_notifyBinding_enabled()
   n1.id ="n1"
   m.observable.isBindingNotificationEnabled = true
   m.assertEmpty(m.observable.pendingBindings)
-  m.assertTrue(m.observable.bindField("f1", n1, "title", false))
+  m.assertTrue(m.observable.bindField("f1", n1, "title", {isSettingInitialValue:false}))
 
-  m.assertTrue(m.observable.notifyBinding("f1", "v1"))
+  m.assertTrue(m.observable.notifyBinding("f1"))
   m.assertEmpty(m.observable.pendingBindings)
   m.assertEqual(n1.title, "v1")
 end function
@@ -818,10 +821,10 @@ function BOT_notifyBinding_enabled_multiple()
   n2.id ="n2"
   m.observable.isBindingNotificationEnabled = true
   m.assertEmpty(m.observable.pendingBindings)
-  m.assertTrue(m.observable.bindField("f1", n1, "title", false))
-  m.assertTrue(m.observable.bindField("f1", n2, "title", false))
+  m.assertTrue(m.observable.bindField("f1", n1, "title", {isSettingInitialValue:false}))
+  m.assertTrue(m.observable.bindField("f1", n2, "title", {isSettingInitialValue:false}))
 
-  m.assertTrue(m.observable.notifyBinding("f1", "v1"))
+  m.assertTrue(m.observable.notifyBinding("f1"))
   m.assertEmpty(m.observable.pendingBindings)
   m.assertEqual(n1.title, "v1")
   m.assertEqual(n2.title, "v1")
@@ -838,10 +841,10 @@ function BOT_notifyBinding_enabled_multiple_specificKey()
   n2.id ="n2"
   m.observable.isBindingNotificationEnabled = true
   m.assertEmpty(m.observable.pendingBindings)
-  m.assertTrue(m.observable.bindField("f1", n1, "title", false))
-  m.assertTrue(m.observable.bindField("f1", n2, "title", false))
+  m.assertTrue(m.observable.bindField("f1", n1, "title", {isSettingInitialValue:false}))
+  m.assertTrue(m.observable.bindField("f1", n2, "title", {isSettingInitialValue:false}))
 
-  m.assertTrue(m.observable.notifyBinding("f1", "v1", "1_n2_f1_title"))
+  m.assertTrue(m.observable.notifyBinding("f1", "1_n2_f1_title"))
   m.assertEmpty(m.observable.pendingBindings)
   m.assertEmpty(n1.title)
   m.assertEqual(n2.title, "v1")
@@ -858,10 +861,10 @@ function BOT_notifyBinding_enabled_multiple_specificKey_notThere()
   n2.id ="n2"
   m.observable.isBindingNotificationEnabled = true
   m.assertEmpty(m.observable.pendingBindings)
-  m.assertTrue(m.observable.bindField("f1", n1, "title", false))
-  m.assertTrue(m.observable.bindField("f1", n2, "title", false))
+  m.assertTrue(m.observable.bindField("f1", n1, "title", {isSettingInitialValue:false}))
+  m.assertTrue(m.observable.bindField("f1", n2, "title", {isSettingInitialValue:false}))
 
-  m.assertTrue(m.observable.notifyBinding("f1", "v1", "1_n3_f1_title"))
+  m.assertTrue(m.observable.notifyBinding("f1", "1_n3_f1_title"))
   m.assertEmpty(m.observable.pendingBindings)
   m.assertEmpty(n1.title)
   m.assertEmpty(n2.title)
@@ -880,7 +883,7 @@ function BOT_unbindAllFields()
   n1.id ="n1"
   m.observable["f2"] = "v2"
 
-  m.assertTrue(m.observable.bindField("f2", n1, "t1", false))
+  m.assertTrue(m.observable.bindField("f2", n1, "t1", {isSettingInitialValue:false}))
 
   m.assertNotEmpty(m.observable.bindings)
   m.observable.unbindAllFields()
