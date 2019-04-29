@@ -2,8 +2,8 @@
 <component name="BaseView" extends="Group" >
   <script type="text/brightscript" uri="BaseView.brs" />
   <script type="text/brightscript" uri="pkg:/source/rLog/rLogMixin.brs" />
-  <script type="text/brightscript" uri="pkg:/components/lib/FocusMixin.brs" />
-  <script type="text/brightscript" uri="pkg:/components/lib/KeyMixin.brs" />
+  <script type="text/brightscript" uri="pkg:/components/Framework/Lib/FocusMixin.brs" />
+  <script type="text/brightscript" uri="pkg:/components/Framework/Lib/KeyMixin.brs" />
 
   <interface>
     <!-- base of all views -->

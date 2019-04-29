@@ -1,6 +1,7 @@
 function Init() as void
   m.transportImpls = []
   m.top.filters = []
+  m.top.excludeFilters = []
   m.top.transports = ["printTransport"]
 end function
 

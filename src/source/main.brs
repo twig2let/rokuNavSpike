@@ -3,7 +3,7 @@ sub Main(args as dynamic)
     ? args
     m.args = args
 
-    if (type(Rooibos__Init) = "Function") then Rooibos__Init(args, invalid, invalid)
+    if (type(Rooibos__Init) = "Function") then Rooibos__Init(invalid, invalid, invalid, m)
     InitScreen()
 end sub
 

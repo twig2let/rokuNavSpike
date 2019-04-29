@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="ObservableTests" extends="Group">
+  <script type="text/brightscript" uri="pkg:/source/tests/ViewModels/ObservableTests.brs"/>
+  <script type="text/brightscript" uri="pkg:/source/rLog/rLogMixin.brs" />
+  <script type="text/brightscript" uri="pkg:/source/tests/rooibosDist.brs" />
+  <script type="text/brightscript" uri="pkg:/source/tests/rooibosFunctionMap.brs" />
+  <script type="text/brightscript" uri="pkg:/source/lib/Utils.brs" />
+  <script type="text/brightscript" uri="pkg:/source/ViewModels/BaseObservable.brs" />
+  <script type="text/brightscript" uri="pkg:/source/ViewModels/ObservableMixin.brs" />
+
+  <interface>
+    <function name="Rooibos_RunNodeTests" />
+  </interface>
+
+  <children>  
+  </children>
+</component>
