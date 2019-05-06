@@ -32,6 +32,10 @@
 			<Label 
         id="titleLabel" 
         />
+			<Label 
+        id="noItemLabel" 
+        text="there are no items"
+        />
       <LabelList 
         id="itemList" 
       />

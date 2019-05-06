@@ -12,6 +12,7 @@ function TodoScreenVM()
     items: createObject("roSGNode", "ContentNode")
     isAutoCreateTimerActive: false
     currentTitle: "none"
+    hasItems: false
 
     'public
     addTodo: TSVM_addTodo
@@ -47,6 +48,7 @@ function TSVM_addTodo(value)
   item.title = "item " + stri(currentCount).trim()
   m.items.appendChild(item)
   m.focusItemAtIndex(m.items.getChildCount() -1)
+  m.setField("hasItems", true)
 end function
 
 function TSVM_removeTodo(value)
@@ -57,6 +59,7 @@ function TSVM_removeTodo(value)
     m.logWarn("tried to remove todo when items was empty!")
   end if
   m.focusItemAtIndex(m.items.getChildCount() -1)
+  m.setField("hasItems", m.items.getChildCount() > 0)
 end function
 
 function TSVM_onTimerFire()
