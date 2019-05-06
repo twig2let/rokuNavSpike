@@ -36,7 +36,7 @@ end function
 
 '@Test valid
 function BVMT_testVM()
-  vm = createVM()
+  vm = BVMT_createVM()
   m.assertEqual(vm.state, "none")
   m.assertEqual(vm.name, "testVM")
 
@@ -49,7 +49,7 @@ end function
 
 '@Test calls abstract methods
 function BVMT_testVM_abstractMethods()
-  vm = createVM()
+  vm = BVMT_createVM()
   m.assertEqual(vm.state, "none")
   m.assertEqual(vm.name, "testVM")
 
@@ -69,12 +69,12 @@ end function
 
 '@Test timeConstructor
 function BVMT_timeConstructor()
-  vm = createVM()
+  vm = BVMT_createVM()
 end function
 
 '@Test time method calls
 function BVMT_testVM_time()
-  vm = createVM()
+  vm = BVMT_createVM()
   vm.initialize()
   vm.onShow()
   vm.onHide()
@@ -105,7 +105,7 @@ function BVMT_customDestroy()
   m.isDestroyCalled = true
 end function
 
-function createVM()
+function BVMT_createVM()
   subClass = {
     name: "testVM"
     getAge: BVMT_getAge

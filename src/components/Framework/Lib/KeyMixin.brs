@@ -51,6 +51,10 @@ function OnKeyEvent(key as string, press as boolean) as boolean
     result = _isCapturingAnyKeyPress(key, press)
   end if
 
+  if result = false and m.vm <> invalid
+    result = m.vm.onKeyEvent(key, press)
+  end if
+
   return result
 end function
 

@@ -14,7 +14,7 @@ end function
 function onCurrentItemChange(event)
   ' logInfo("item change event {0}", event)
   newValue = m.top.currentItem
-  if not newValue.isOptionsItem 
+  if not newValue.isOptionsItem = true
     ? "settign preoptions to " ; newValue.name
     m.preOptionsItem = newValue
   end if

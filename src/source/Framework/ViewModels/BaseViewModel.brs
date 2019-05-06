@@ -8,21 +8,27 @@ function BaseViewModel(subClass)
   this.append({
     __viewModel: true
     state: "none"
+    focusId: invalid
+
+    'public
     initialize: BVM_initialize
     destroy: BVM_destroy
     onShow: BVM_onShow
     onHide: BVM_onHide
-    _states: { 
-      "none": "none", 
-      "invalid": "invalid", 
+    onKeyEvent: BVM_onKeyEvent
+
+    'private
+    _states: {
+      "none": "none",
+      "invalid": "invalid",
       "initialized": "initialized"
       "destroyed": "destroyed"
-      }
+    }
   })
   if isAACompatible(subClass) and subClass.name <> invalid and subClass.name <> ""
     this.append(subClass)
     registerlogger(subClass.name, true, this)
-    else
+  else
     this.state = "invalid"
   end if
   return this
@@ -60,4 +66,46 @@ function BVM_onHide()
   if isFunction(m._onHide)
     m._onHide()
   end if
+end function
+
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+'++ KEY HANDLING
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+function BVM_onKeyEvent(key as string, press as boolean) as boolean
+  result = false
+  if press
+    if isFunction(m._isAnyKeyPressLocked) and m._isAnyKeyPressLocked()
+      return true
+    end if
+    if key = "down" and isFunction(m._onKeyPressDown())
+      result = _onKeyPressDown()
+    else if key = "up" and isFunction(m._onKeyPressUp)
+      result = m._onKeyPressUp()
+    else if key = "left" and isFunction(m._onKeyPressLeft)
+      result = m._onKeyPressLeft()
+    else if key = "right" and isFunction(m._onKeyPressRight)
+      result = m._onKeyPressRight()
+    else if key = "OK" and isFunction(m._onKeyPressOK)
+      result = m._onKeyPressOK()
+    else if key = "back" and isFunction(m._onKeyPressBack)
+      result = m._onKeyPressBack()
+    else if key = "options" and isFunction(m._onKeyPressOption)
+      result = m._onKeyPressOption()
+    else if key = "play" and isFunction(m._onKeyPressPlay)
+      result = m._onKeyPressPlay()
+    end if
+  else
+    result = false
+  end if
+
+  if (result = invalid)
+    result = false
+  end if
+
+  if result = false and isFunction(m._isCapturingAnyKeyPress)
+    result = m._isCapturingAnyKeyPress(key, press)
+  end if
+
+  return result
 end function
