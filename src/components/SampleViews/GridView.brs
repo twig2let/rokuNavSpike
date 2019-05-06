@@ -1,7 +1,5 @@
 function Init()
-  registerLogger("GV", "GridView")
-  SetNavItem(m.top.FindNode("navItem"))
-
+  registerLogger("GridView")
 end function
 
 function OnKeyEvent(key as String, press as Boolean) as Boolean

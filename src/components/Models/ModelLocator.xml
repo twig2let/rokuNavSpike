@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="ModelLocator" extends="Node" 
+	>
+	<interface>
+    <!-- DIP mechanism for app - this is injected into every view
+    to allow for IOC -->
+    <field id="styles" type="assocarray" value="{}"/>
+    <field id="localizations" type="assocarray" value="{}"/>
+    <field id="assets" type="assocarray" value="{}"/>
+	</interface>
+
+</component>

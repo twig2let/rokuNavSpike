@@ -1,7 +1,7 @@
 '@Namespace BO BaseObservable
 '@Import rLogMixin
 '@Import Utils
-'@Import BaseObservableMixin
+'@Import ObservableMixin
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 '++ Base observer class
@@ -355,14 +355,18 @@ function BO_notifyBinding(fieldName, specificKey = invalid, excludeKey = invalid
       if (specificKey = invalid or specificKey = key) and (excludeKey = invalid or excludeKey <> key)
         binding = bindings[key]
         if type(binding.node) = "roSGNode"
-          if binding.transformFunction <> invalid
-            bindingValue = binding.transformFunction(value)
-          else
-            bindingValue = value
-          end if
-          binding.node.setField(binding.targetField, bindingValue)
+          if binding.node.doesExist(binding.targetField)
+            if binding.transformFunction <> invalid
+              bindingValue = binding.transformFunction(value)
+            else
+              bindingValue = value
+            end if
+            binding.node.setField(binding.targetField, bindingValue)
+            else
+            logError("target field did not exist for binding ", key)
+          end if 
         else
-          logError("Skipping illegal node for field binding: " + key)
+          logError("Skipping illegal node for field binding: ", key)
         end if
       end if
     end for

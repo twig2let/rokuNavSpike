@@ -1,6 +1,6 @@
 function init()  
   findNodes(["container"])
-  registerLogger("NavItemMenu", "NavItemMenu")
+  registerLogger("NavItemMenu")
   m.navItemsById = {}
   
   m.top.currentItem = invalid
@@ -11,10 +11,10 @@ function init()
   m.top.observeField("focusedChild", "OnFocusedChildChange")
 end function
 
-function OnCurrentItemChange(event)
-  logInfo("item change event {0}", event)
+function onCurrentItemChange(event)
+  ' logInfo("item change event {0}", event)
   newValue = m.top.currentItem
-  if not newValue.isOptionsItem 
+  if not newValue.isOptionsItem = true
     ? "settign preoptions to " ; newValue.name
     m.preOptionsItem = newValue
   end if
@@ -30,11 +30,12 @@ function OnCurrentItemChange(event)
   m.didOptionsKeypressComeFromMenu = false
 end function
 
-function OnItemsChange(event)
-  logInfo("items CHANGED ")
+function setItems(items)
+  ' logInfo("items CHANGED")
+  m.top.items = items
   'TODO add items to the view
   m.container.removeChildren(m.container.getChildren(-1,0))
-  for each item in m.top.items
+  for each item in items
     menuItem = createObject("roSGNode", "MenuItem")
     menuItem.item = item
     if item.isOptionsItem
@@ -43,8 +44,8 @@ function OnItemsChange(event)
     m.container.appendChild(menuItem)
   end for
 
-  if m.top.items.count() > 0
-    m.top.currentItem = m.top.items[0]
+  if items.count() > 0
+    m.top.currentItem = items[0]
   else
     m.top.currentItem = invalid
   end if
@@ -101,31 +102,31 @@ end function
 '++ key presses
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-function isCapturingAnyKeyPress_(key) as boolean
+function _isCapturingAnyKeyPress(key, press) as boolean
   return true
 end function
 
-function onKeyPressDown_() as boolean
+function _onKeyPressDown() as boolean
   m.global.mainView.isFocusedOnContent = true
   return true
 end function
 
-function onKeyPressLeft_() as boolean
+function _onKeyPressLeft() as boolean
   selectItem(-1)
   return true
 end function
 
-function onKeyPressRight_() as boolean
+function _onKeyPressRight() as boolean
   selectItem(1)
   return true
 end function
 
-function onKeyPressBack_() as boolean
+function _onKeyPressBack() as boolean
   m.global.mainView.isFocusedOnContent = true
   return true
 end function
 
-function onKeyPressOption_() as boolean
+function _onKeyPressOption() as boolean
   if m.top.supportOptionPressWhenFocused
     if m.top.currentItem.isOptionsItem
       restorePreOptionFocus()

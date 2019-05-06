@@ -50,7 +50,7 @@ end function
 '  * @param {paramType} paramDescription
 '  * @returns {returnType} returnDescription
 '  */
-function OM_unobserveField(observable, fieldName, functionPointer) as boolean
+function OM_unobserveField(observable, observableField, functionPointer) as boolean
   if not OM_isRegistered(observable)
     logError("could not unobserve field - the observable has not been registered")
     return false
@@ -69,7 +69,7 @@ function OM_unobserveField(observable, fieldName, functionPointer) as boolean
       m._observableFunctionPointerCounts.delete(functionName)
     end if
   end if
-  return observable.unobserveField(fieldName, functionName)
+  return observable.unobserveField(observableField, functionName)
 end function
 
 ' /**
@@ -78,9 +78,9 @@ end function
 '  *
 '  * @description binds a field on the passed in node to a field on the passed in observer
 '  * @param {node} targetNode - the node to notify when the field changes - must have a unique id
-'  * @param {string} fieldName - field on the node to observe
+'  * @param {string} nodeField - field on the node to observe
 '  * @param {BaseObservable} observable - observable instance
-'  * @param {string} targetField - field on the observable to update with change values
+'  * @param {string} observableField - field on the observable to update with change values
 '  * @param {assocarray} properties - the properties for the particular binding
 '  *                     - can include
 '  *                     isSettingInitialValue -(default true) if true,
@@ -88,13 +88,13 @@ end function
 '  *                     transformFunction - function pointer to a value that will modify the value before calling the binding.
 '  * @returns {boolean} true if successful
 '  */
-function OM_bindNodeField(targetNode, fieldName, observable, targetField, properties = invalid) as boolean
+function OM_bindNodeField(targetNode, nodeField, observable, observableField, properties = invalid) as boolean
   if not OM_registerObservable(observable)
     logError("could not bind node field - the observable failed to register")
     return false
   end if
 
-  if not observable.checkValidInputs(fieldName, targetNode, targetField)
+  if not OM_checkValidInputs(nodeField, targetNode, nodeField)
     return false
   end if
 
@@ -102,15 +102,15 @@ function OM_bindNodeField(targetNode, fieldName, observable, targetField, proper
     properties = OM_createBindingProperties()
   end if
 
-  nodeKey = targetNode.id + "_" + fieldName
+  nodeKey = targetNode.id + "_" + nodeField
   nodeBindings = m._observableNodeBindings[nodeKey]
 
   if nodeBindings = invalid
-    targetNode.observeFieldScoped(fieldName, "OM_bindingCallback")
+    targetNode.observeFieldScoped(nodeField, "OM_bindingCallback")
     nodeBindings = {}
   end if
 
-  key = observable.getNodeFieldBindingKey(targetNode, fieldName, targetField)
+  key = observable.getNodeFieldBindingKey(targetNode, nodeField, observableField)
 
   if nodeBindings.doesExist(key)
     logWarn("NodeBinding already existed for key")
@@ -124,22 +124,22 @@ function OM_bindNodeField(targetNode, fieldName, observable, targetField, proper
     end if
   end if
 
-  nodeBindings[key] = {"contextId": observable.contextId, "targetField": targetField, "transformFunction": properties.transformFunction}
+  nodeBindings[key] = {"contextId": observable.contextId, "targetField": observableField, "transformFunction": properties.transformFunction}
 
   m._observableNodeBindings[nodeKey] = nodeBindings
   if properties.isSettingInitialValue = true
     if properties.transformFunction <> invalid
-      value = properties.transformFunction(targetNode[fieldName])
+      value = properties.transformFunction(targetNode[nodeField])
     else
-      value = targetNode[fieldName]
+      value = targetNode[nodeField]
     end if
-    if isFunction(observable[targetField])
-      observable[targetField](value)
+    if isFunction(observable[observableField])
+      observable[observableField](value)
     else
-      if not observable.doesExist(targetField)
-        logWarn(targetField, "was not present on observable when setting initial value for node key", nodeKey)
+      if not observable.doesExist(observableField)
+        logWarn(observableField, "was not present on observable when setting initial value for node key", nodeKey)
       end if
-      observable.setField(targetField, value)
+      observable.setField(observableField, value)
     end if
   end if
   return true
@@ -268,9 +268,9 @@ end function
 '  *
 '  * @description binds the field from observable, to the target node's field
 '  * @param {observable} observable - instance of observable
-'  * @param {string} fieldName - name of field to bind
+'  * @param {string} observableField - name of field to bind
 '  * @param {node} targetNode - node to set bound field value on
-'  * @param {string} targetField - name of field to set on node
+'  * @param {string} nodeField - name of field to set on node
 '  * @param {assocarray} properties - the properties for the particular binding
 '  *                     - can include
 '  *                     isSettingInitialValue -(default true) if true,
@@ -278,9 +278,9 @@ end function
 '  *                     transformFunction - function pointer to a value that will modify the value before calling the binding.
 '  * @returns {boolean} true if successful
 '  */
-function OM_bindObservableField(observable, fieldName, targetNode, targetField, properties = invalid) as boolean
+function OM_bindObservableField(observable, observableField, targetNode, nodeField, properties = invalid) as boolean
   if OM_registerObservable(observable)
-    return observable.bindField(fieldName, targetNode, targetField, properties)
+    return observable.bindField(observableField, targetNode, nodeField, properties)
   end if
   return false
 end function
@@ -291,14 +291,14 @@ end function
 '  *
 '  * @description removes binding for the field from observable, to the target node's field
 '  * @param {observable} observable - instance of observable
-'  * @param {string} fieldName - name of field to bind
+'  * @param {string} observableField - name of field to bind
 '  * @param {node} targetNode - node to set bound field value on
-'  * @param {string} targetField - name of field to set on node
+'  * @param {string} nodeField - name of field to set on node
 '  * @returns {boolean} true if successful
 '  */
-function OM_unbindObservableField(observable, fieldName, targetNode, targetField) as boolean
+function OM_unbindObservableField(observable, observableField, targetNode, nodeField) as boolean
   if OM_isObservable(observable)
-    return observable.unbindField(fieldName, targetNode, targetField)
+    return observable.unbindField(observableField, targetNode, nodeField)
   end if
   return false
 end function
@@ -331,18 +331,18 @@ end function
 '  *
 '  * @description wires the field on the observable to the target field on the targetNode, and will update it in a 2 way relationship
 '  * @param {BaseObservable} observable - instance to bind
-'  * @param {string} fieldName - field on observable to bind
+'  * @param {string} observableField - field on observable to bind
 '  * @param {roSGNode} targetNode - node to bind to
-'  * @param {string} targetField - field on target node to bind to
+'  * @param {string} nodeField - field on target node to bind to
 '  * @param {assocarray} properties - the properties for the particular binding
 '  *                     - can include
 '  *                     isSettingInitialValue -(default true) if true,
 '  *                          will set the value instantly
 '  *                     transformFunction - function pointer to a value that will modify the value before calling the binding.
 '  */
-function OM_bindFieldTwoWay(observable, fieldName, targetNode, targetField, properties = invalid) as void
-  OM_bindObservableField(observable, fieldName, targetNode, targetField, invalid)
-  OM_bindNodeField(targetNode, targetField, observable, fieldName, {isSettingInitialValue: false})
+function OM_bindFieldTwoWay(observable, observableField, targetNode, nodeField, properties = invalid) as void
+  OM_bindObservableField(observable, observableField, targetNode, nodeField, invalid)
+  OM_bindNodeField(targetNode, nodeField, observable, observableField, {isSettingInitialValue: false})
 end function
 
 ' /**
@@ -445,7 +445,7 @@ function OM_observerCallback(event) as void
         end if
         functionPointer(bindingValue)
       else
-        logError("could not find functoin pointer for function ", functionName)
+        logError("could not find function pointer for function ", functionName)
       end if
     end for
   end if
@@ -457,29 +457,34 @@ end function
 '  *
 '  * @description checks the given inputs are valid for binding uses, such as
 '  *              generating binding keys
-'  * @param {string} fieldName - name of source field
+'  * @param {string} observableField - name of source field
 '  * @param {node} targetNode - the target node - must have an id!
-'  * @param {string} targetField  - name of target field
+'  * @param {string} nodeField  - name of target field
 '  * @returns {boolean} true if valid
 '  */
-function OM_checkValidInputs(fieldName, targetNode, targetField) as boolean
-  if not isString(fieldName) or fieldName.trim() = ""
-    logError("Tried to bind with illegal fieldName")
+function OM_checkValidInputs(observableField, targetNode, nodeField) as boolean
+  if not isString(observableField) or observableField.trim() = ""
+    logError("illegal observableField", observableField)
     return false
   end if
 
-  if not isString(targetField) or targetField.trim() = ""
-    logError("Tried to bind with illegal field")
+  if not isString(nodeField) or nodeField.trim() = ""
+    logError("illegal field", nodeField)
     return false
   end if
 
   if type(targetNode) <> "roSGNode"
-    logError("Tried to unbind illegal node")
+    logError("illegal node")
+    return false
+  end if
+
+  if not targetNode.doesExist(nodeField)
+    logError("nodeField doesn't exist", nodeField)
     return false
   end if
 
   if targetNode.id.trim() = ""
-    logError("target node has no id - an id is required for node observing", fieldName, targetField)
+    logError("target node has no id - an id is required for node observing", observableField, nodeField)
     return false
   end if
 
@@ -518,7 +523,7 @@ function OM_createBindingProperties(settingInitialValue = true, transformFunctio
     logError("transformFunction was not a function! was it in scope?")
     transformFunction = invalid
   end if
-  
+
   return {
     "isSettingInitialValue": settingInitialValue
     "transformFunction": transformFunction
