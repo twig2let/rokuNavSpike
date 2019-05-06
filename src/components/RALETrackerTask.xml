@@ -1,10 +1,8 @@
-<?xml version="1.0" encoding="utf-8" ?> 
-<!-- 
- - AuthController
- -
- - Controller for sign-in flows
- -->
+<?rokuml version="1.0" encoding="utf-8" ?>
+<!--********** Copyright 2019 Roku Corp. All Rights Reserved. **********-->
+
 <component name="RALETrackerTask" extends="Task">
+  <script type="text/brightscript" uri="pkg:/source/Framework/lib/ThreadUtils.brs"/>
 
   <interface>
       <field id="event" type="assocarray"/>
@@ -20,6 +18,8 @@
 
       <function name="UIThread_getItemList"/>
       <function name="UIThread_getNodeTree"/>
+      <function name="UIThread_getNodeById"/>
+      <function name="UIThread_getNodeByName"/>
 
       <function name="UIThread_addChild"/>
       <function name="UIThread_removeChild"/>
@@ -48,28 +48,34 @@
 
 ' RALE_Config - RALE config singleton class
 ' @return {object} - RALE config properties
-function RALE_Config() as Object
+Function RALE_Config() as Object
     if m.appConfig = Invalid then m.appConfig = RALE_InitConfig()
     return m.appConfig
-end function
+End Function
 
 ' RALE_InitConfig - RALE config init function. Defines all config properties
 ' @return {object} - RALE config properties
-function RALE_InitConfig() as Object
+Function RALE_InitConfig() as Object
     this = {
         bufferSize: 1024,
         minSocketPort: 49152,
-        maxSocketPort: 65535
+        maxSocketPort: 65535,
+        screensaverResetTimeout: 30000,
+        commandTimeout: 10000
     }
 
     return this
-end function
+End Function
 
 
 ' CreateSelectorView - Selector (live) view class constructor
 ' @return {object} - selector (live) view
-function CreateSelectorView() as Object
+Function CreateSelectorView() as Object
     view = CreateObject("roSGNode", "Group")
+
+    m.resolution = m.top.getScene().getField("currentDesignResolution")
+    m.resWidth = m.resolution.width
+    m.resHeight = m.resolution.height
 
     children = [
         {subtype : "Rectangle", fields : {id : "l"}}
@@ -79,6 +85,18 @@ function CreateSelectorView() as Object
 
         {subtype : "Rectangle", fields : {id : "horiz"}}
         {subtype : "Rectangle", fields : {id : "vert"}}
+
+
+        {subtype : "Rectangle", fields : {id : "leftLine"}}
+        {subtype : "Rectangle", fields : {id : "topLine"}}
+        {subtype : "Rectangle", fields : {id : "rightLine"}}
+        {subtype : "Rectangle", fields : {id : "bottomLine"}}
+
+        {subtype : "Label", fields : {id : "leftCords"}}
+        {subtype : "Label", fields : {id : "topCords"}}
+        {subtype : "Label", fields : {id : "rightCords"}}
+        {subtype : "Label", fields : {id : "bottomCords"}}
+
         {subtype : "Rectangle", fields : {id : "fill", color :  "#ffffff44"}}
         {subtype : "Timer",     fields : {id : "timer", duration : 1 / 60, repeat : true}}
     ]
@@ -108,25 +126,25 @@ function CreateSelectorView() as Object
     timer.control = "start"
 
     return view
-end function
+End Function
 
 ' NodeUtils_AddInterfaceToNode - Adds interface to node
 ' @param {object} node - node
 ' @param {object} interface - interface
 ' @return {boolean} - is interface was added
-function NodeUtils_AddInterfaceToNode(node, interface as Object) as Boolean
+Function NodeUtils_AddInterfaceToNode(node, interface as Object) as Boolean
     if node = invalid OR interface = invalid then return false
     for each field in interface
         NodeUtils_AddNodeInterfaceField(node, field)
     end for
     return true
-end function
+End Function
 
 ' NodeUtils_AddNodeInterfaceField - Adds interface field to node
 ' @param {object} node - node
 ' @param {object} fieldConfig - field config
 ' @return {boolean} - is interface was added
-function NodeUtils_AddNodeInterfaceField(node, fieldConfig as Object) as Boolean
+Function NodeUtils_AddNodeInterfaceField(node, fieldConfig as Object) as Boolean
     if node = invalid OR fieldConfig = invalid then return false
     if fieldConfig.id = invalid then return false
     if fieldConfig.type = invalid then return false
@@ -148,13 +166,13 @@ function NodeUtils_AddNodeInterfaceField(node, fieldConfig as Object) as Boolean
     end if
 
     return true
-end function
+End Function
 
 ' NodeUtils_AddChildrenToNode - Adds children to node
 ' @param {object} node - node
 ' @param {object} childrenConfig - children config
 ' @return {object} - view object
-function NodeUtils_AddChildrenToNode(node, childrenConfig as Object) as Object
+Function NodeUtils_AddChildrenToNode(node, childrenConfig as Object) as Object
     if node = invalid then return invalid
     viewObject = {node : node, children : []}
     if childrenConfig <> invalid then
@@ -165,20 +183,35 @@ function NodeUtils_AddChildrenToNode(node, childrenConfig as Object) as Object
     end if
 
     return viewObject
-end function
+End Function
 
 ' NodeUtils_AddChildToNode - Adds child to node
 ' @param {object} node - node
 ' @param {object} childConfig - child config
 ' @return {object} - view object
-function NodeUtils_AddChildToNode(node, childConfig) as Object
+Function NodeUtils_AddChildToNode(node, childConfig) as Object
     if node = invalid or childConfig = invalid then return invalid
     if childConfig.subtype = invalid then return invalid
     view = node.CreateChild(childConfig.subtype)
     if view = invalid then return invalid
     if childConfig.fields <> invalid then view.setFields(childConfig.fields)
     return NodeUtils_AddChildrenToNode(view, childConfig.children)
-end function
+End Function
+
+' NumberToFixed - formats a number using fixed-point notation
+' @param {float, double} number - formated number
+' @param {integer} digits - the number of digits to appear after the decimal point
+' @return {string} - a string representing the given number using fixed-point notation
+Function NumberToFixed(number, digits) as String
+    str = number.toStr()
+    arr = str.split(".")
+
+    if arr.count() > 1 and digits > 0 then
+        return arr[0] + "." + Left(arr[1], digits)
+    end if
+
+    return arr[0]
+End Function
 
 ' SelectorView_UpdateView - width, height and border change event handler. Updates Selector (live) view
 ' @param {object} event - event data
@@ -187,6 +220,10 @@ Sub SelectorView_UpdateView(event)
     border = node.border
     width  = node.width
     height = node.height
+    x = node.boundingRect.x
+    y = node.boundingRect.y
+    rightPos = x + width + border*2
+    bottomPos = y + height + border*2
 
     l = node.childrenMap.l
     l.width = border
@@ -217,6 +254,50 @@ Sub SelectorView_UpdateView(event)
     vert.width = border
     vert.height = height
     vert.translation = [(width - border) / 2, 0]
+
+    leftLine = node.childrenMap.leftLine
+    leftLine.width = x
+    leftLine.height = border
+    leftLine.translation = [-x, (height - border) / 2]
+
+    topLine = node.childrenMap.topLine
+    topLine.width = border
+    topLine.height = y
+    topLine.translation = [(width - border) / 2, -y]
+
+    rightLine = node.childrenMap.rightLine
+    rightLine.width = m.resWidth - x + 10
+    rightLine.height = border
+    rightLine.translation = [width + border, (height - border) / 2]
+
+    bottomLine = node.childrenMap.bottomLine
+    bottomLine.width = border
+    bottomLine.height = m.resHeight - y + 10
+    bottomLine.translation = [(width - border) / 2, height + border]
+
+    leftCords = node.childrenMap.leftCords
+    leftCords.font.size = 20
+    leftCords.color = "#FF0000"
+    leftCords.text = NumberToFixed(x, 0)
+    leftCords.translation = [-x/2 - 10, (height - border) / 2 - 20]
+
+    topCords = node.childrenMap.topCords
+    topCords.font.size = 20
+    topCords.color = "#FF0000"
+    topCords.text = NumberToFixed(y, 0)
+    topCords.translation = [(width - border) / 2 + 10, -y/2 - 10]
+
+    rightCords = node.childrenMap.rightCords
+    rightCords.font.size = 20
+    rightCords.color = "#FF0000"
+    rightCords.text = NumberToFixed(m.resWidth - x - width, 0)
+    rightCords.translation = [width + (m.resWidth - rightPos)/2 - 5, (height - border) / 2 - 20]
+
+    bottomCords = node.childrenMap.bottomCords
+    bottomCords.font.size = 20
+    bottomCords.color = "#FF0000"
+    bottomCords.text = NumberToFixed(m.resHeight - y - height, 0)
+    bottomCords.translation = [(width - border) / 2 + 10, height + (m.resHeight - bottomPos)/2 - 5]
 
     fill = node.childrenMap.fill
     fill.width = width
@@ -274,7 +355,7 @@ Sub SelectorView_UpdateViewPosition(event)
     if node.attachedView <> Invalid then
         boundingRect = node.attachedView.sceneboundingRect()
     else
-        boundingRect = {x: 0, y: 0, width: 0, height: 0}
+        boundingRect = {x: -100, y: -100, width: 0, height: 0}
     end if
 
     if isBoundingRectChanged(boundingRect, node) then
@@ -299,8 +380,10 @@ Sub getCommandMap() as Object
         "getNodeData" : "UIThread_getNodeData",
 
         ' Tree View commands
-        "getItemList" : "UIThread_getItemList"
-        "getNodeTree" : "UIThread_getNodeTree"
+        "getItemList" : "UIThread_getItemList",
+        "getNodeTree" : "UIThread_getNodeTree",
+        "getNodeById" : "UIThread_getNodeById",
+        "getNodeByName" : "UIThread_getNodeByName",
 
         ' Children commands
         "addChild" : "UIThread_addChild",
@@ -441,13 +524,52 @@ End Sub
 ' @return {object} - response of command. Node children hierarchy
 Sub UIThread_getNodeTree(args) as Object
     path = args["path"]
+    maxLevel = args["maxLevel"]
 
     root = m.top.getScene()
     node = RALE_getNodeByPath(root, path)
     index = RALE_getNodeIndexByPath(path)
     if node = Invalid then return getError("Invalid Path")
 
-    return getNodeTree(node, index)
+    return getNodeTree(node, index, maxLevel)
+End Sub
+
+' UIThread_getNodeById - RALE "getNodeById" command handler. Returns node with requested id
+' @param {object} args - command arguments
+' @return {object} - response of command. Found node data
+Sub UIThread_getNodeById(args) as Object
+    path = args["path"]
+    id = args["id"]
+
+    if id = Invalid then return getError("id is required")
+
+    root = m.top.getScene()
+    rootNode = RALE_getNodeByPath(root, path)
+    if rootNode = Invalid then return getError("Invalid Path")
+
+    foundNode = getNodeById(rootNode, id)
+    foundPath = RALE_getNodePath(foundNode, root)
+
+    return getNodeData(foundNode, foundPath, root)
+End Sub
+
+' UIThread_getNodeByName - RALE "getNodeByName" command handler. Returns node with requested name
+' @param {object} args - command arguments
+' @return {object} - response of command. Found node path
+Sub UIThread_getNodeByName(args) as Object
+    path = args["path"]
+    name = args["name"]
+
+    if name = Invalid then return getError("name is required")
+
+    root = m.top.getScene()
+    rootNode = RALE_getNodeByPath(root, path)
+    if rootNode = Invalid then return getError("Invalid Path")
+
+    foundNode = getNodeByName(rootNode, name)
+    foundPath = RALE_getNodePath(foundNode, root)
+
+    return getNodeData(foundNode, foundPath, root)
 End Sub
 
 '=======================
@@ -479,7 +601,7 @@ Sub UIThread_addChild(args) as Object
     if result.success = true then
         index = RALE_getNodeIndexByPath(path)
         return {
-            tree: getNodeTree(result.child, index),
+            tree: getNodeTree(result.child, index, 50),
             childindex: result.index
         }
     else
@@ -536,7 +658,7 @@ Sub UIThread_setField(args) as Object
     fieldValue = args["value"]
 
     if field = "" then return getError("Field ID is required")
-    if RALE_convertToType(fieldValue, FW_AsString(fieldType)) = Invalid then return getError("Invalid Field Arguments")
+    if RALE_convertToType(fieldValue, FW_AsString(fieldType)) = Invalid then return getError("Invalid Field Type or Value")
 
     path = m.currentPath
     nodeType = type(m.currentNode)
@@ -603,13 +725,15 @@ End Sub
 Sub UIThread_selectFocusedNode(args) as Object
     root = m.top.getScene()
     node = getFocusedNodeObj(root)
+    'RALE crashes here a lot - which is irritating, so I put this hack in
+    if node = invalid or root = invalid or m.currentNode = invalid then return invalid
     if m.currentNode.IsSameNode(node) then
         return {
             path: m.currentPath,
             node: getNodeData(node, m.currentPath, root)
         }
     else
-        path = getNodePath(node, root)
+        path = RALE_getNodePath(node, root)
         m.currentNode = node
         m.currentPath = path
         setSelectorView(node, type(node), path)
@@ -819,63 +943,107 @@ End Sub
 ' @param {object} node - node or filed
 ' @param {string} id - node index or filed id
 ' @return {array} - node children hierarchy
-Sub getNodeTree(node, id) as Object
-    item = {}
-    nodeType = type(node)
-    if nodeType = "roSGNode" then
-        item = {
-            item: getItemObj(node, id)
-            childList: []
-        }
+Sub getNodeTree(node, id, maxLevel) as Object
+    item = {
+        item: getItemObj(node, id),
+        childList: []
+    }
 
-        stateStack = []
-        stateObj = {
-            index : 0
-            item : item
-            node : node
-        }
-        processedNodesCount = 1
-        hasMoreChildren = node.getchildcount() > 0
-        while true
-            if hasMoreChildren then
-                childIndex = stateObj.index
-                childNode = node.getchild(childIndex)
+    result = RALE_forEachChild(node, { maxLevel: maxLevel }, getNodeTreeCallback, { item: item })
 
-                stateObj.index++
-                hasMoreChildren = stateObj.item.item.childrencount > stateObj.index
-
-                if childNode <> invalid then
-                    processedNodesCount++
-
-                    childItemObj = {
-                        item : getItemObj(childNode, childIndex)
-                        childList : []
-                    }
-                    stateObj.item.childlist[childIndex] = childItemObj
-                    if childItemObj.item.childrencount > 0 then
-                        stateStack.push(stateObj)
-
-                        stateObj = {
-                            index : 0
-                            item : childItemObj
-                            node : childNode
-                        }
-                        node = childNode
-                        hasMoreChildren = stateObj.item.item.childrencount > stateObj.index
-                    end if
-                end if
-            else if stateStack.count() > 0 then
-                stateObj = stateStack.pop()
-                node = stateObj.node
-                hasMoreChildren = stateObj.item.item.childrencount > stateObj.index
-            else
-                exit while
-            end if
-        end while
-    else
+    if not result then
         return getError("Invalid Node Type")
     end if
+
     return item
+End Sub
+
+Sub getNodeTreeCallback(node, index, parentObj, childObj, storage) as Boolean
+
+    if parentObj.item = Invalid then
+        parentObj.item = storage.item
+    end if
+
+    childItem = {
+        item : getItemObj(node, index),
+        childList : []
+    }
+
+    parentObj.item.childlist[index] = childItem
+
+    if childObj <> Invalid then
+        childObj.item = childItem
+    end if
+
+    return true
+End Sub
+
+' getNodeById - Search for node by id
+' @param {object} node - root node
+' @param {string} id - node id
+' @return {object} - found node
+Sub getNodeById(rootNode, id) as Object
+
+    if rootNode.id = id then
+        return rootNode
+    end if
+
+    storage = {
+        node: Invalid,
+        id: id
+    }
+
+    result = RALE_forEachChild(rootNode, {}, getNodeByIdCallback, storage)
+
+    if not result then
+        return getError("Invalid Node Type")
+    end if
+
+    return storage.node
+End Sub
+
+Sub getNodeByIdCallback(node, index, parentObj, childObj, storage) as Boolean
+
+    if node.id = storage.id then
+        storage.node = node
+        return false
+    end if
+
+    return true
+End Sub
+
+' getNodeByName - Search for node by name (subtype)
+' @param {object} node - root node
+' @param {string} name - node name (subtype)
+' @return {object} - found node
+Sub getNodeByName(rootNode, name) as Object
+
+    if rootNode.subtype() = name then
+        return rootNode
+    end if
+
+    storage = {
+        node: Invalid,
+        name: name
+    }
+
+    result = RALE_forEachChild(rootNode, {}, getNodeByNameCallback, storage)
+
+    if not result then
+        return getError("Invalid Node Type")
+    end if
+
+    return storage.node
+End Sub
+
+Sub getNodeByNameCallback(node, index, parentObj, childObj, storage) as Boolean
+
+    if node.subtype() = storage.name then
+        storage.node = node
+        return false
+    end if
+
+    return true
 End Sub
 
 ' getNodeData - Returns node children hierarchy
@@ -906,7 +1074,7 @@ Sub addChild(node, childType, index) as Object
     if not FW_IsSGNode(node) then return getError("Cannot Add Child. Invalid Node Type")
 
     child = CreateObject("roSGNode", childType)
-    if not FW_IsSGNode(child) then return getError("Cannot Add Child. Invalid Subtype")
+    if not FW_IsSGNode(child) then return getError("Cannot Add Child. Invalid Component Type")
 
     childCount = node.getChildCount()
     if FW_IsInteger(index) and index < childCount then
@@ -968,7 +1136,7 @@ End Sub
 ' @param {string} nodeType - type of node
 ' @param {array} nodePath - path to node
 ' @return {object} - status
-function setSelectorView(node, nodeType, nodePath) as Object
+Function setSelectorView(node, nodeType, nodePath) as Object
     if m.selectorView <> Invalid then
         if m.showSelectorView and nodeType = "roSGNode" and nodePath.count() > 0 then
             m.selectorView.attachedView = node
@@ -976,7 +1144,7 @@ function setSelectorView(node, nodeType, nodePath) as Object
             m.selectorView.attachedView = Invalid
         end if
     end if
-end function
+End Function
 
 ' setNodeField - Sets field into node
 ' @param {object} node - node
@@ -994,15 +1162,6 @@ Sub setNodeField(node, field, value, fieldType) as Object
         end if
     else
         fields[field] = RALE_convertToType(value, fieldType)
-
-        'bug - this results in type mismatches "roBoolean"/"bool" vs "boolean" for fieldType
-        'here's a crude workaround
-        isBool = box(node.getFieldType(field)) = "boolean"
-
-        if node.hasField(field) and (isBool and fieldType <> "roBoolean" or (not isBool and node.getFieldType(field) <> fieldType)) then
-            node.removeField(field)
-        end if
-
         if not node.hasField(field) then
             node.addField(field, RALE_parseType(fieldType), false)
         end if
@@ -1028,7 +1187,7 @@ End Sub
 ' @param {string} field - field id
 ' @param {dynamic} value - field value
 ' @return {object} - parent node
-function setInParentNode(path, field, value)
+Function setInParentNode(path, field, value)
     root = m.top.getScene()
     parentPath = []
     parentPath.append(path)
@@ -1062,7 +1221,7 @@ function setInParentNode(path, field, value)
     parent = RALE_getNodeByPath(root, parentPath)
     setNodeField(parent, field, value, Invalid)
     return RALE_getNodeByPath(root, path)
-end function
+End Function
 
 ' setFocus - Focus node
 ' @param {object} node - node
@@ -1075,7 +1234,7 @@ End Sub
 ' @param {object} root - root
 ' @param {object} maxDeep - search depth
 ' @return {object} - focused node
-function getFocusedNodeObj(root, maxDeep = 25) as Object
+Function getFocusedNodeObj(root, maxDeep = 25) as Object
     node = root
     focusedChild = node.focusedChild
     while maxDeep > 0 AND focusedChild <> Invalid AND not node.isSameNode(focusedChild)
@@ -1084,48 +1243,13 @@ function getFocusedNodeObj(root, maxDeep = 25) as Object
         maxDeep--
     end while
     return node
-end function
+End Function
 
-' getNodeIndex - Returns node index
-' @param {object} node - node
-' @param {object} parent - node parent
-' @return {integer} - node index
-function getNodeIndex(node, parent) as Integer
-    for i = 0 to parent.getchildCount() - 1
-        if parent.getChild(i).isSameNode(node) then return i
-    end for
-    return -1
-end function
-
-' getNodePath - Returns node path
-' @param {object} node - node
-' @param {object} root - root
-' @return {array} - node path
-function getNodePath(node, root) as Object
-    path = []
-
-    if node <> Invalid and root <> Invalid then
-        parent = node.getParent()
-        while parent <> Invalid
-            index = getNodeIndex(node, parent)
-            if index = -1 then exit while
-
-            node = parent
-            parent = node.getParent()
-
-            path.unshift({ child: index })
-
-            if root.isSameNode(node) then exit while
-        end while
-    end if
-    return path
-end function
-
-' getNodePath - Returns error object
+' getError - Returns error object
 ' @param {string} message - error message
-function getError(message as String) as Object
+Function getError(message as String) as Object
     return { error: { message: message } }
-end function
+End Function
 
 
 ' @desc TrackerTask init function
@@ -1135,13 +1259,14 @@ Sub init()
 
     m.config = RALE_Config()
     m.sceneBG = m.top.GetScene().getChild(0)
-    m.raleVersion = "1.6.4"
+    m.raleVersion = "1.7.8"
 End Sub
 
 ' tracker - TrackerTask run function
 Sub tracker()
     appInfo = CreateObject("roAppInfo")
-    if not appInfo.IsDev() then return
+    'WE WANT THIS TCP SOCKET TO BE OPEN IN PUBLISHED CASES
+    'if not appInfo.IsDev() then return
 
     ?"tracker Run"
     handlersMap = getCommandMap()
@@ -1156,7 +1281,7 @@ Sub tracker()
 
     while True
         port = 0
-        msg = wait(0, inputPort)
+        msg = waitPort(0, inputPort, true)
         if type(msg) = "roInputEvent"
             if msg.IsInput()
                 info = msg.GetInfo()
@@ -1166,7 +1291,7 @@ Sub tracker()
             end if
         end if
         if port > m.config.minSocketPort and port < m.config.maxSocketPort then
-            socketConnection(addr, messagePort, port, buffer, handlersMap)
+            socketConnection(addr, messagePort, port, buffer, handlersMap, m.config)
         end if
     end while
 
@@ -1178,9 +1303,13 @@ End Sub
 ' @param {number} port - socket connection port
 ' @param {array} buffer - buffer for socket packets
 ' @param {object} handlersMap - map that contains all RALE commands handlers
+' @param {object} config - configuration constants
 ' @return {string} - connection status
-Sub socketConnection(addr, messagePort, port, buffer, handlersMap) as String
+Sub socketConnection(addr, messagePort, port, buffer, handlersMap, config) as String
     connections = {}
+    appManager = createObject("roAppManager")
+    screensaverTimer = CreateObject("roTimespan")
+    screensaverTimer.Mark()
 
     addr.setPort(port)
 
@@ -1195,13 +1324,19 @@ Sub socketConnection(addr, messagePort, port, buffer, handlersMap) as String
     while True
 
         if not wasConnected then
-            event = wait(3000, messagePort)
+            event = waitPort(3000, messagePort, true)
             if event = Invalid then
                 tcpListen.close()
                 return "connection timeout"
             end if
         else
-            event = wait(0, messagePort)
+            event = waitPort(config.commandTimeout, messagePort, true)
+        end if
+
+        ' Resets the screensaver timer
+        if screensaverTimer.TotalMilliseconds() > config.screensaverResetTimeout then
+            screensaverTimer.Mark()
+            appManager.UpdateLastKeyPressTime()
         end if
 
         ' ? type(event)
@@ -1236,7 +1371,7 @@ Sub socketConnection(addr, messagePort, port, buffer, handlersMap) as String
                         if request <> Invalid then
                             response = {}
                             if request["command"] <> Invalid then
-                                ? "handling : " request["command"]
+                                '?' "handling : " request["command"]
                                 handler = handlersMap[request["command"]]
                                 if handler <> Invalid then
                                     response = callCommand(handler, request["args"])
@@ -1256,7 +1391,7 @@ Sub socketConnection(addr, messagePort, port, buffer, handlersMap) as String
                                 sleep(20)
                             end for
 
-                            ? "command handled in : " timer.TotalMilliseconds()
+                            '? "command handled in : " timer.TotalMilliseconds()
                         end if
                     else if received=0 ' client closed
                         closed = True
@@ -1289,63 +1424,63 @@ End Sub
 ' @param value As Dynamic
 ' @return As Boolean - true if value contains XMLElement interface, else return false
 '************************************************* 
-function FW_IsXmlElement(value As Dynamic) As Boolean
+Function FW_IsXmlElement(value As Dynamic) As Boolean
     Return FW_IsValid(value) And GetInterface(value, "ifXMLElement") <> invalid
-end function
+End Function
 
 '************************************************* 
-' FW_Isfunction - check if value contains function interface
+' FW_IsFunction - check if value contains Function interface
 ' @param value As Dynamic
-' @return As Boolean - true if value contains function interface, else return false
+' @return As Boolean - true if value contains Function interface, else return false
 '************************************************* 
-function FW_Isfunction(value As Dynamic) As Boolean
-    Return FW_IsValid(value) And GetInterface(value, "iffunction") <> invalid
-end function
+Function FW_IsFunction(value As Dynamic) As Boolean
+    Return FW_IsValid(value) And GetInterface(value, "ifFunction") <> invalid
+End Function
 
 '************************************************* 
 ' FW_IsBoolean - check if value contains Boolean interface
 ' @param value As Dynamic
 ' @return As Boolean - true if value contains Boolean interface, else return false
 '************************************************* 
-function FW_IsBoolean(value As Dynamic) As Boolean
+Function FW_IsBoolean(value As Dynamic) As Boolean
     Return FW_IsValid(value) And GetInterface(value, "ifBoolean") <> invalid
-end function
+End Function
 
 '************************************************* 
 ' FW_IsInteger - check if value type equals Integer
 ' @param value As Dynamic
 ' @return As Boolean - true if value type equals Integer, else return false
 '************************************************* 
-function FW_IsInteger(value As Dynamic) As Boolean
+Function FW_IsInteger(value As Dynamic) As Boolean
     Return FW_IsValid(value) And GetInterface(value, "ifInt") <> invalid And (Type(value) = "roInt" Or Type(value) = "roInteger" Or Type(value) = "Integer")
-end function
+End Function
 
 '************************************************* 
 ' FW_IsFloat - check if value contains Float interface
 ' @param value As Dynamic
 ' @return As Boolean - true if value contains Float interface, else return false
 '************************************************* 
-function FW_IsFloat(value As Dynamic) As Boolean
+Function FW_IsFloat(value As Dynamic) As Boolean
     Return FW_IsValid(value) And GetInterface(value, "ifFloat") <> invalid
-end function
+End Function
 
 '************************************************* 
 ' FW_IsDouble - check if value contains Double interface
 ' @param value As Dynamic
 ' @return As Boolean - true if value contains Double interface, else return false
 '************************************************* 
-function FW_IsDouble(value As Dynamic) As Boolean
+Function FW_IsDouble(value As Dynamic) As Boolean
     Return FW_IsValid(value) And GetInterface(value, "ifDouble") <> invalid
-end function
+End Function
 
 '************************************************* 
 ' FW_IsLongInteger - check if value contains LongInteger interface
 ' @param value As Dynamic
 ' @return As Boolean - true if value contains LongInteger interface, else return false
 '************************************************* 
-function FW_IsLongInteger(value As Dynamic) As Boolean
+Function FW_IsLongInteger(value As Dynamic) As Boolean
     Return FW_IsValid(value) And GetInterface(value, "ifLongInt") <> invalid
-end function
+End Function
 
 
 '************************************************* 
@@ -1353,101 +1488,101 @@ end function
 ' @param value As Dynamic
 ' @return As Boolean - true if value is number, else return false
 '************************************************* 
-function FW_IsNumber(value As Dynamic) As Boolean
+Function FW_IsNumber(value As Dynamic) As Boolean
     Return FW_IsLongInteger(value) or FW_IsDouble(value) or FW_IsInteger(value) or FW_IsFloat(value)
-end function
+End Function
 
 '************************************************* 
 ' FW_IsList - check if value contains List interface
 ' @param value As Dynamic
 ' @return As Boolean - true if value contains List interface, else return false
 '************************************************* 
-function FW_IsList(value As Dynamic) As Boolean
+Function FW_IsList(value As Dynamic) As Boolean
     Return FW_IsValid(value) And GetInterface(value, "ifList") <> invalid
-end function
+End Function
 
 '************************************************* 
 ' FW_IsArray - check if value contains Array interface
 ' @param value As Dynamic
 ' @return As Boolean - true if value contains Array interface, else return false
 '************************************************* 
-function FW_IsArray(value As Dynamic) As Boolean
+Function FW_IsArray(value As Dynamic) As Boolean
     Return FW_IsValid(value) And GetInterface(value, "ifArray") <> invalid
-end function
+End Function
 
 '************************************************* 
 ' FW_IsAssociativeArray - check if value contains AssociativeArray interface
 ' @param value As Dynamic
 ' @return As Boolean - true if value contains AssociativeArray interface, else return false
 '************************************************* 
-function FW_IsAssociativeArray(value As Dynamic) As Boolean
+Function FW_IsAssociativeArray(value As Dynamic) As Boolean
     Return FW_IsValid(value) And GetInterface(value, "ifAssociativeArray") <> invalid
-end function
+End Function
 
 '************************************************* 
 ' FW_IsSGNode - check if value contains SGNodeChildren interface
 ' @param value As Dynamic
 ' @return As Boolean - true if value contains SGNodeChildren interface, else return false
 '************************************************* 
-function FW_IsSGNode(value As Dynamic) As Boolean
+Function FW_IsSGNode(value As Dynamic) As Boolean
     Return FW_IsValid(value) And GetInterface(value, "ifSGNodeChildren") <> invalid
-end function
+End Function
 
 '************************************************* 
 ' FW_IsString - check if value contains String interface
 ' @param value As Dynamic
 ' @return As Boolean - true if value contains String interface, else return false
 '************************************************* 
-function FW_IsString(value As Dynamic) As Boolean
+Function FW_IsString(value As Dynamic) As Boolean
     Return FW_IsValid(value) And GetInterface(value, "ifString") <> invalid
-end function
+End Function
 
 '************************************************* 
 ' FW_IsNotEmptyString - check if value contains String interface and length more 0
 ' @param value As Dynamic
 ' @return As Boolean - true if value contains String interface and length more 0, else return false
 '************************************************* 
-function FW_IsNotEmptyString(value As Dynamic) As Boolean
+Function FW_IsNotEmptyString(value As Dynamic) As Boolean
     Return FW_IsString(value) and len(value) > 0
-end function
+End Function
 
 '************************************************* 
 ' FW_IsDateTime - check if value contains DateTime interface
 ' @param value As Dynamic
 ' @return As Boolean - true if value contains DateTime interface, else return false
 '************************************************* 
-function FW_IsDateTime(value As Dynamic) As Boolean
+Function FW_IsDateTime(value As Dynamic) As Boolean
     Return FW_IsValid(value) And (GetInterface(value, "ifDateTime") <> invalid Or Type(value) = "roDateTime")
-end function
+End Function
 
 '************************************************* 
 ' FW_IsValid - check if value initialized and not equal invalid
 ' @param value As Dynamic
 ' @return As Boolean - true if value initialized and not equal invalid, else return false
 '************************************************* 
-function FW_IsValid(value As Dynamic) As Boolean
+Function FW_IsValid(value As Dynamic) As Boolean
     Return Type(value) <> "<uninitialized>" And value <> invalid
-end function
+End Function
 
 '************************************************* 
 ' FW_ValidStr - return value if his contains String interface else return empty string
 ' @param value As Object
 ' @return As String - value if his contains String interface else return empty string
 '************************************************* 
-function FW_ValidStr(obj As Object) As String
+Function FW_ValidStr(obj As Object) As String
     if obj <> invalid and GetInterface(obj, "ifString") <> invalid
         return obj
     else
         return ""
     endif
-end function 
+End Function 
 
 '************************************************* 
 ' FW_AsString - convert input to String if this possible, else return empty string
 ' @param input As Dynamic
 ' @return As String - return converted string
 '************************************************* 
-function FW_AsString(input As Dynamic) As String
+Function FW_AsString(input As Dynamic) As String
     If FW_IsValid(input) = False Then
         Return ""
     Else If FW_IsString(input) Then
@@ -1459,14 +1594,14 @@ function FW_AsString(input As Dynamic) As String
     Else
         Return ""
     End If
-end function
+End Function
 
 '************************************************* 
 ' FW_AsInteger - convert input to Integer if this possible, else return 0
 ' @param input As Dynamic
 ' @return As Integer - return converted Integer
 '************************************************* 
-function FW_AsInteger(input As Dynamic) As Integer
+Function FW_AsInteger(input As Dynamic) As Integer
     If FW_IsValid(input) = False Then
         Return 0
     Else If FW_IsString(input) Then
@@ -1478,14 +1613,14 @@ function FW_AsInteger(input As Dynamic) As Integer
     Else
         Return 0
     End If
-end function
+End Function
 
 '************************************************* 
 ' FW_AsLongInteger - convert input to LongInteger if this possible, else return 0
 ' @param input As Dynamic
 ' @return As Integer - return converted LongInteger
 '************************************************* 
-function FW_AsLongInteger(input As Dynamic) As LongInteger
+Function FW_AsLongInteger(input As Dynamic) As LongInteger
     If FW_IsValid(input) = False Then
         Return 0
     Else If FW_IsString(input) Then
@@ -1495,14 +1630,14 @@ function FW_AsLongInteger(input As Dynamic) As LongInteger
     Else
         Return 0
     End If
-end function
+End Function
 
 '************************************************* 
 ' FW_AsFloat - convert input to Float if this possible, else return 0.0
 ' @param input As Dynamic
 ' @return As Float - return converted Float
 '************************************************* 
-function FW_AsFloat(input As Dynamic) As Float
+Function FW_AsFloat(input As Dynamic) As Float
     If FW_IsValid(input) = False Then
         Return 0.0
     Else If FW_IsString(input) Then
@@ -1514,14 +1649,14 @@ function FW_AsFloat(input As Dynamic) As Float
     Else
         Return 0.0
     End If
-end function
+End Function
 
 '************************************************* 
 ' FW_AsDouble - convert input to Double if this possible, else return 0.0
 ' @param input As Dynamic
 ' @return As Float - return converted Double
 '************************************************* 
-function FW_AsDouble(input As Dynamic) As Double
+Function FW_AsDouble(input As Dynamic) As Double
     If FW_IsValid(input) = False Then
         Return 0.0
     Else If FW_IsString(input) Then
@@ -1531,14 +1666,14 @@ function FW_AsDouble(input As Dynamic) As Double
     Else
         Return 0.0
     End If
-end function
+End Function
 
 '************************************************* 
 ' FW_AsBoolean - convert input to Boolean if this possible, else return False
 ' @param input As Dynamic
 ' @return As Boolean
 '************************************************* 
-function FW_AsBoolean(input As Dynamic) As Boolean
+Function FW_AsBoolean(input As Dynamic) As Boolean
     If FW_IsValid(input) = False Then
         Return False
     Else If FW_IsString(input) Then
@@ -1550,14 +1685,14 @@ function FW_AsBoolean(input As Dynamic) As Boolean
     Else
         Return False
     End If
-end function
+End Function
 
 '************************************************* 
 ' FW_AsArray - if type of value equals array return value, else return array with one element [value]
 ' @param value As Object
 ' @return As Object - roArray
 '************************************************* 
-function FW_AsArray(value As Object) As Object
+Function FW_AsArray(value As Object) As Object
     If FW_IsValid(value)
         If Not FW_IsArray(value) Then
             Return [value]
@@ -1566,7 +1701,7 @@ function FW_AsArray(value As Object) As Object
         End If
     End If
     Return []
-end function
+End Function
 
 '************************************************* 
 ' FW_ValidAA - check if obj contains all keys
@@ -1575,7 +1710,7 @@ end function
 ' @param delim as String - key delimiter (default = ".")
 ' @return As Boolean - return true if type of obj equals AssociativeArray and obj contains all keys, else return false
 '************************************************* 
-function FW_ValidAA(obj As Object, keys as Object, delim = "." as String) as Boolean
+Function FW_ValidAA(obj As Object, keys as Object, delim = "." as String) as Boolean
     'All keys on level 0
     if not FW_IsAssociativeArray(obj) or not FW_IsNotEmptyString(delim) or not FW_isArray(keys) then
         return false
@@ -1598,7 +1733,7 @@ function FW_ValidAA(obj As Object, keys as Object, delim = "." as String) as Boo
         
     end for
     return true
-end function
+end Function
 
 '************************************************* 
 ' FW_GetSubElement - check if obj contains subElementTree element and return him
@@ -1657,7 +1792,7 @@ end function
 ' RALE_parseType - Parse type name to brs type
 ' @param {string} _type - type
 ' @return {string} - brs type
-function RALE_parseType(_type as String) as String
+Function RALE_parseType(_type as String) as String
     _type =  LCase(_type)
     convertMap = {
         "rointeger" : "integer",
@@ -1687,13 +1822,13 @@ function RALE_parseType(_type as String) as String
     }
     if convertMap[_type] <> Invalid then return convertMap[_type]
     return _type
-end function
+End function
 
 ' RALE_convertToType - Convert variable to type
 ' @param {dynamic} value - variable value
 ' @param {string} _type - type to which you want to convert
 ' @return {dynamic} - new variable value
-function RALE_convertToType(value as Dynamic, _type as String) as Dynamic
+Function RALE_convertToType(value as Dynamic, _type as String) as Dynamic
     _type = RALE_parseType(_type)
 
     convertMap = {
@@ -1718,13 +1853,13 @@ function RALE_convertToType(value as Dynamic, _type as String) as Dynamic
         return convertMap[_type](value)
     end if
     return value
-end function
+End function
 
 ' RALE_getNodeByItem - Returns node field or child by item data
 ' @param {dynamic} item - item data
 ' @param {dynamic} node - type to which you want to convert
 ' @return {dynamic} - node field or child
-function RALE_getNodeByItem(item as Dynamic, node as Dynamic) as Dynamic
+Function RALE_getNodeByItem(item as Dynamic, node as Dynamic) as Dynamic
     itemType = type(item)
     if itemType <> "roAssociativeArray" then return Invalid
 
@@ -1758,13 +1893,13 @@ function RALE_getNodeByItem(item as Dynamic, node as Dynamic) as Dynamic
     else
         return Invalid
     end if
-end function
+End function
 
 ' RALE_getNodeByPath - Returns node by path
 ' @param {object} root - root of nodes (main scene)
 ' @param {array} path - path to node (for example [{ child: 1 }, { field: "fieldId" }])
 ' @return {dynamic} - node or Invalid (if no node by this path)
-function RALE_getNodeByPath(root as Dynamic, path as Object) as Dynamic
+Function RALE_getNodeByPath(root as Dynamic, path as Object) as Dynamic
     node = root
 
     if type(path) <> "roArray" then return Invalid
@@ -1775,13 +1910,48 @@ function RALE_getNodeByPath(root as Dynamic, path as Object) as Dynamic
     end for
 
     return node
-end function
+End function
+
+' RALE_getNodeIndex - Returns node index
+' @param {object} node - node
+' @param {object} parent - node parent
+' @return {integer} - node index
+Function RALE_getNodeIndex(node, parent) as Integer
+    for i = 0 to parent.getchildCount() - 1
+        if parent.getChild(i).isSameNode(node) then return i
+    end for
+    return -1
+End Function
+
+' RALE_getNodePath - Returns node path
+' @param {object} node - node
+' @param {object} root - root
+' @return {array} - node path
+Function RALE_getNodePath(node, root) as Object
+    path = []
+
+    if node <> Invalid and root <> Invalid then
+        parent = node.getParent()
+        while parent <> Invalid
+            index = RALE_getNodeIndex(node, parent)
+            if index = -1 then exit while
+
+            node = parent
+            parent = node.getParent()
+
+            path.unshift({ child: index })
+
+            if root.isSameNode(node) then exit while
+        end while
+    end if
+    return path
+End Function
 
 ' RALE_getNodeListByPath - Returns node by path
 ' @param {object} root - root of nodes (main scene)
 ' @param {array} path - path to node (for example [{ child: 1 }, { field: "fieldId" }])
 ' @return {dynamic} - list of nodes (parent nodes and selected one) or Invalid (if no node by this path)
-function RALE_getNodeListByPath(root as Dynamic, path as Object) as Dynamic
+Function RALE_getNodeListByPath(root as Dynamic, path as Object) as Dynamic
     node = root
     nodeList = [node]
 
@@ -1794,12 +1964,12 @@ function RALE_getNodeListByPath(root as Dynamic, path as Object) as Dynamic
     end for
 
     return nodeList
-end function
+End function
 
 ' RALE_getNodeIndexByPath - Returns node index or id by path
 ' @param {array} path - path to node (for example [{ child: 1 }, { field: "fieldId" }])
 ' @return {dynamic} - node index or id or Invalid (if no node by this path)
-function RALE_getNodeIndexByPath(path) as Dynamic
+Function RALE_getNodeIndexByPath(path) as Dynamic
     if type(path) <> "roArray" then return Invalid
 
     length = path.count()
@@ -1818,13 +1988,13 @@ function RALE_getNodeIndexByPath(path) as Dynamic
     end if
 
     return index
-end function
+End function
 
 ' RALE_splitStringByLength - Splits string on parts and store in array
 ' @param {string} str - string which will be splitted
 ' @param {integer} length - max part langth
 ' @return {array} - splitted string
-function RALE_splitStringByLength(str, length) as Dynamic
+Function RALE_splitStringByLength(str, length) as Dynamic
     list = []
     strLength = str.len()
     currentPosition = 0
@@ -1835,9 +2005,81 @@ function RALE_splitStringByLength(str, length) as Dynamic
     end while
 
     return list
-end function
+End function
+
+
+
+' RALE_forEachNode - Goes through all the children and call the callback function
+' @param {object} node - root node
+' @param {object} options - options
+' @param {function} callback - callback function that will be called for each node
+Function RALE_forEachChild(node, options, callback, storage) as Dynamic
+    nodeType = type(node)
+    maxLevel = 50
+
+    if FW_IsInteger(options.maxLevel) then
+        maxLevel = options.maxLevel
+    end if
+
+    if nodeType = "roSGNode" then
+        level = 0
+        stateStack = []
+        stateObj = {
+            index : 0
+            node : node
+        }
+
+        childCount = node.getchildcount()
+        while true
+
+            if childCount > stateObj.index then
+                childIndex = stateObj.index
+                childNode = node.getchild(childIndex)
+
+                stateObj.index++
+
+                if childNode <> invalid then
+                    childCountTmp = childNode.getchildcount()
+
+                    parentObj = stateObj
+                    childObj = Invalid
+
+                    if childCountTmp > 0 and level < maxLevel then
+                        childCount = childCountTmp
+                        stateStack.push(stateObj)
+                        level++
+
+                        stateObj = {
+                            index : 0
+                            node : childNode
+                        }
+                        childObj = stateObj
+
+                        node = childNode
+                    end if
+
+                    result = callback(childNode, childIndex, parentObj, childObj, storage)
+
+                    if not result then
+                        exit while
+                    end if
+                end if
+            else if level > 0 then
+                stateObj = stateStack.pop()
+                level--
+                node = stateObj.node
+                childCount = stateObj.node.getchildcount()
+            else
+                exit while
+            end if
+        end while
+    else
+        return false
+    end if
+
+    return true
+End function
 
 ]]>
 </script>
-
 </component>

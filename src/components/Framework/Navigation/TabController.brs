@@ -2,8 +2,15 @@ function init()
   registerLogger("TabController")
   logMethod("init")
   m.top.currentItem = invalid
-  m.top.menuItems = []
   m.viewsByMenuItemId = {}
+end function
+
+function addChildViews()
+  children = m.top.getChildren(-1, 0)
+  for each child in children
+    addExistingView(child)
+  end for
+  m.top.removeChildren(children)
 end function
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -50,6 +57,14 @@ function getViewForMenuItemContent(menuItemContent)
   return view
 end function
 
+function getViews()
+  views = []
+  for each id in m.viewsByMenuItemId
+    views.push(m.viewsByMenuItemId[id])
+  end for
+  return views
+end function
+
 function addExistingView(existingView)
   m.viewsByMenuItemId[existingView.id] = existingView
   existingView.visible = false
@@ -74,4 +89,12 @@ function createView(menuItemContent)
     logError("menu item ", menuItemContent.id, " has no screenType - a call to registerExistingView should've been made first")
     return invalid
   end if
+end function
+
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+'++ Lifecycle
+'+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+function _initialize(args)
+  addChildViews()
 end function

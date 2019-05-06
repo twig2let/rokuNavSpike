@@ -10,16 +10,25 @@ const outDir = './build';
 const rokuDeploy = require('roku-deploy');
 const cp = require('child_process');
 
-const args = {
+let args = {
   host: process.env.ROKU_HOST || '192.168.16.3',
   username: process.env.ROKU_USER || 'rokudev',
   password: process.env.ROKU_PASSWORD || 'aaaa',
   rootDir: './',
+  // annoying bug stops these working right
+  // files: [
+  //   'src/**/*',
+  //   '!src/components/Tests/**/*',
+  //   '!src/source/tests/**/*'
+  // ],
   files: ['src/**/*'],
   outDir: './build',
   retainStagingFolder: true
 };
 
+function setEnvTest(args) {
+  args.files = ['src/**/*'];
+}
 
 export function clean() {
   console.log('Doing a clean at ' + outDir);
@@ -35,6 +44,8 @@ export function createDirectories() {
  * This target is used for CI
  */
 export async function prepareTests(cb) {
+  setEnvTest(args);
+  console.log(args)
   await rokuDeploy.prepublishToStaging(args);
   let processor = new RooibosProcessor('build/.roku-deploy-staging/source/tests', 'build/.roku-deploy-staging', 'build/.roku-deploy-staging/source/tests');
   processor.processFiles();
@@ -43,15 +54,23 @@ export async function prepareTests(cb) {
 }
 
 export async function deployTests(cb) {
+  setEnvTest(args);
   await rokuDeploy.publish(args);
 }
 
 export async function zipTests(cb) {
+  setEnvTest(args);
   await rokuDeploy.zipPackage(args);
 }
 
 export async function prepare(cb) {
+  console.log(args);
   await rokuDeploy.prepublishToStaging(args);
+  //annoying issue makes me delete these folders, coz I can't just filter them
+  //:/
+  gulp.src("build/.roku-deploy-staging/components/Tests", { allowEmpty:true }).pipe(gulpClean({ force: true }));
+  gulp.src("build/.roku-deploy-staging/source/tests", { allowEmpty:true }).pipe(gulpClean({ force: true }));
+  
 }
 
 export async function zip(cb) {
@@ -89,7 +108,7 @@ export function doc(cb) {
 }
 
 exports.build = series(clean, createDirectories);
-exports.prePublishTests = series(exports.build, prepareTests, addDevLogs)
+exports.prePublishTests =series(exports.build, prepareTests, addDevLogs)
 exports.runTests = series(exports.prePublishTests, zipTests, deployTests)
 exports.prePublish = series(exports.build, prepare, addDevLogs)
 exports.dist = series(exports.build, doc);

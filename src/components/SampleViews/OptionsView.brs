@@ -1,6 +1,5 @@
 function Init()
-  registerLogger("OV", "OptionsView")
-  SetNavItem(m.top.FindNode("navItem"))
+  registerLogger("OptionsView")
 end function
 
 function OnKeyEvent(key as String, press as Boolean) as Boolean

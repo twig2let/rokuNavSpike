@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<component name="NavItem" extends="Group" xsi:noNamespaceSchemaLocation="https://devtools.web.roku.com/schema/RokuSceneGraph.xsd">
+<component name="NavItem" extends="Group" >
 
     <interface>
         <!-- Abstraction for navigaiton items. This can be used to describe items in a tab
@@ -10,9 +10,6 @@
 
         <!-- if true, then this item is the special options menu item, toggled by the * key -->
         <field id="isOptionsItem" type="boolean" onChange="testThis"/>
-
-        <!-- view associated with the item -->
-        <field id="view" type="node"/>
     </interface>
 
     <script type="text/brightscript" uri="NavItem.brs" />

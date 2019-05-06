@@ -22,6 +22,10 @@
     <!-- return the screen displayed on top of this screen's stack -->
     <function name="getTopScreen" />
 
+    <!-- NavItem assoicated with this screen
+    if you have a special field named navItem  -->
+    <field id="navItem" type="node" />
+
     <!-- navController support -->
       <field id="navController" type="node" />
       

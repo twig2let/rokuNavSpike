@@ -1,7 +1,7 @@
 '@Namespace BO BaseObservable
 '@Import rLogMixin
 '@Import Utils
-'@Import BaseObservableMixin
+'@Import ObservableMixin
 
 '+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 '++ Base observer class

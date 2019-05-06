@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component name="OptionsView" extends="BaseScreen" 
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://devtools.web.roku.com/schema/RokuSceneGraph.xsd">
+	>
 	<interface>
 	</interface>
 	<script type="text/brightscript" uri="OptionsView.brs" />
 
 	<children>
-		<NavItem id="navItem" name="OPTIONS" isOptionsItem="true"/>
 		<Label text="Options view" />
 	</children>
 

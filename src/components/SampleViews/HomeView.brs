@@ -1,4 +1,3 @@
 function Init()
-  registerLogger("HV", "HomeView")
-  SetNavItem(m.top.FindNode("navItem"))
+  registerLogger("HomeView")
 end function
